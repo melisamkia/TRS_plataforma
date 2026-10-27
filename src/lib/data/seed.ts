@@ -128,7 +128,7 @@ const products: Product[] = [
     slug: 'proximamente',
     title: 'Lo próximo de Meli y Clari',
     tagline: 'Estamos preparando algo nuevo.',
-    description: 'Muy pronto, acá vas a ver el próximo producto. Las alumnas de El Set se enteran primero.',
+    description: 'Muy pronto, acá vas a ver el próximo producto. Las alumnas de la plataforma se enteran primero.',
     kind: 'programa',
     brand: 'Meli & Clari',
     price_label: null,
@@ -231,7 +231,7 @@ export function createSeed(): DemoDb {
       {
         id: 'u1',
         product_id: 'p-trs',
-        title: 'Bienvenida a El Set',
+        title: 'Bienvenida a la plataforma',
         body: 'Acá vas a encontrar todas las novedades del sistema: mejoras, plantillas nuevas y cambios en las clases. Cada novedad lleva fecha, así sabes qué cambió.',
         published_at: '2026-10-26T12:00:00Z',
       },

@@ -17,7 +17,6 @@ export function Layout() {
         <div className="wrap">
           <NavLink to="/" className="brand" onClick={close}>
             <b>{PLATFORM_NAME}</b>
-            <span>{PLATFORM_BY}</span>
           </NavLink>
           <button className="menu-btn" type="button" aria-expanded={open} aria-controls="nav" onClick={() => setOpen((o) => !o)}>
             {open ? 'CERRAR' : 'MENÚ'}

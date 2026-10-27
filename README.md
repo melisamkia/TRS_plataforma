@@ -1,6 +1,6 @@
-# El Set · Meli & Clari
+# The Reel Studio · Plataforma
 
-La plataforma de miembros de The Reel Studio y del resto de los productos de Meli y Clari. Cada alumna entra con su mail (sin contraseña) y ve:
+La plataforma de miembros (concepto "El Set") de The Reel Studio y del resto de los productos de Meli y Clari. Cada alumna entra con su mail (sin contraseña) y ve:
 
 - **Tus accesos**: los productos que compró (The Reel Studio, B-Rolls y lo que compre después).
 - **Seguir donde quedaste**: la próxima clase que le falta.

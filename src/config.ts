@@ -1,6 +1,6 @@
 // Ajustes generales de la plataforma. Cambiá acá nombres, links y reglas del juego.
 
-export const PLATFORM_NAME = 'El Set'
+export const PLATFORM_NAME = 'The Reel Studio'
 export const PLATFORM_BY = 'Meli & Clari'
 
 /** Grupo de soporte en Telegram. Pegá acá el link de invitación. */
