@@ -104,16 +104,16 @@ function UpdateEditor({
             value={u.published_at.slice(0, 10)}
             onChange={(e) => setU({ ...u, published_at: `${e.target.value}T12:00:00Z` })}
           />
-          </label>
-        </div>
-        <div className="acts">
-          <button className="btn" type="submit">
-            Publicar
-          </button>
-          <button className="btn ghost" type="button" onClick={onCancel}>
-            Cancelar
-          </button>
-        </div>
-      </form>
-    )
+        </label>
+      </div>
+      <div className="acts">
+        <button className="btn" type="submit">
+          Publicar
+        </button>
+        <button className="btn ghost" type="button" onClick={onCancel}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
 }
