@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Credential, FilmStrip, LevelLadder, Poster, kindLabel, pad2 } from '../components/bits'
 import { HOURS_PER_REEL } from '../config'
-import { levelHint, levelName } from '../lib/levels'
+import { isSatisfied, levelHint, levelName, slots, summarize } from '../lib/levels'
 import { useStore } from '../lib/store'
-import type { Module, Product as P } from '../lib/types'
+import type { Lesson, Module, Product as P } from '../lib/types'
 import { NotFound } from './NotFound'
 
 export function Product() {
@@ -20,19 +20,28 @@ function OwnedProduct({ product }: { product: P }) {
   const { productContent, completed, entitlements, level, reels, addReel } = useStore()
   const { modules, lessons } = productContent(product.id)
   const ent = entitlements.find((e) => e.product_id === product.id)
-  const done = lessons.filter((l) => completed.has(l.id)).length
   const lv = level(product.id)
   const [reelUrl, setReelUrl] = useState('')
   const [saving, setSaving] = useState(false)
+  const hasQuick = lessons.some((l) => l.essential)
+  const [quick, setQuick] = useState(() => readQuick(product.id))
+  const showQuick = hasQuick && quick
+  const { done, total } = summarize({ modules, lessons: showQuick ? lessons.filter((l) => l.essential) : lessons }, completed)
 
-  const lessonsOf = (m: Module) => lessons.filter((l) => l.module_id === m.id)
-  const firstOpen = modules.find((m) => lessonsOf(m).some((l) => !completed.has(l.id)))
+  const sat = (l: Lesson) => isSatisfied(l, lessons, completed)
+  const lessonsOf = (m: Module) => lessons.filter((l) => l.module_id === m.id && (!showQuick || l.essential))
+  const firstOpen = modules.find((m) => lessonsOf(m).some((l) => !sat(l)))
   const moduleState = (m: Module): 'done' | 'now' | 'todo' => {
     const ls = lessonsOf(m)
-    if (ls.length > 0 && ls.every((l) => completed.has(l.id))) return 'done'
+    if (ls.length > 0 && ls.every(sat)) return 'done'
     return m.id === firstOpen?.id ? 'now' : 'todo'
   }
-  const nextLesson = lessons.find((l) => !completed.has(l.id))
+  const visibleModules = modules.filter((m) => lessonsOf(m).length > 0)
+  const nextLesson = lessons.find((l) => !sat(l) && (!showQuick || l.essential))
+  const toggleQuick = (v: boolean) => {
+    setQuick(v)
+    saveQuick(product.id, v)
+  }
 
   const onReel = async (e: FormEvent) => {
     e.preventDefault()
@@ -57,9 +66,9 @@ function OwnedProduct({ product }: { product: P }) {
             <p className="lead">{product.tagline}</p>
             {modules.length > 0 && (
               <>
-                <FilmStrip modules={modules} doneByModule={moduleState} />
+                <FilmStrip modules={visibleModules} doneByModule={moduleState} />
                 <p className="strip-label">
-                  {done} de {lessons.length} clases terminadas · cada cuadro es una escena
+                  {done} de {total} terminadas{showQuick ? ' en la ruta rápida' : ''} · cada cuadro es una escena
                 </p>
               </>
             )}
@@ -125,6 +134,21 @@ function OwnedProduct({ product }: { product: P }) {
             <h2>
               Las <b>escenas</b>
             </h2>
+            {hasQuick && (
+              <div>
+                <div className="seg" role="group" aria-label="Qué mostrar">
+                  <button type="button" aria-pressed={!showQuick} onClick={() => toggleQuick(false)}>
+                    Todo el curso
+                  </button>
+                  <button type="button" aria-pressed={showQuick} onClick={() => toggleQuick(true)}>
+                    Ruta rápida
+                  </button>
+                </div>
+                <p className="seg-note">
+                  <span className="ess-dot" aria-hidden="true" /> Ruta rápida: lo mínimo para llegar a Directora
+                </p>
+              </div>
+            )}
           </div>
           {modules.length === 0 ? (
             <div className="empty">
@@ -135,13 +159,15 @@ function OwnedProduct({ product }: { product: P }) {
             <div className="scenes">
               {modules.map((m, mi) => {
                 const ls = lessonsOf(m)
-                const d = ls.filter((l) => completed.has(l.id)).length
+                if (ls.length === 0) return null
+                const groups = slots(ls)
+                const d = groups.filter((g) => g.some((l) => completed.has(l.id))).length
                 return (
                   <div className="scene" key={m.id}>
                     <div className="k">
                       ESCENA {pad2(mi + 1)}
                       <small>
-                        {d} de {ls.length} clases
+                        {d} de {groups.length} terminadas
                       </small>
                     </div>
                     <div>
@@ -150,13 +176,24 @@ function OwnedProduct({ product }: { product: P }) {
                       <ul className="lessons">
                         {ls.map((l) => {
                           const isDone = completed.has(l.id)
+                          const byAlt = !isDone && sat(l)
                           const isNow = !isDone && l.id === nextLesson?.id
                           return (
                             <li key={l.id}>
                               <Link to={`/clase/${l.id}`}>
-                                <span>{l.title}</span>
-                                <span className={`chip ${isDone ? 'done' : isNow ? 'now' : 'todo'}`}>
-                                  {isDone ? 'Terminada' : isNow ? 'Sigue esta' : 'Pendiente'}
+                                <span className="lt">
+                                  {l.essential && !showQuick && <span className="ess-dot" title="Ruta rápida" />}
+                                  {l.title}
+                                  {l.alt_group && <span className="alt">{l.alt_group}</span>}
+                                </span>
+                                <span className="lmeta">
+                                  <span className="kind">
+                                    {l.kind === 'guia' ? 'Guía' : 'Video'}
+                                    {l.duration ? ` · ${l.duration}` : ''}
+                                  </span>
+                                  <span className={`chip ${isDone || byAlt ? 'done' : isNow ? 'now' : 'todo'}`}>
+                                    {isDone ? 'Terminada' : byAlt ? 'Hiciste la otra' : isNow ? 'Sigue esta' : 'Pendiente'}
+                                  </span>
                                 </span>
                               </Link>
                             </li>
@@ -216,4 +253,20 @@ function LockedProduct({ product }: { product: P }) {
       </section>
     </>
   )
+}
+
+function readQuick(productId: string): boolean {
+  try {
+    return localStorage.getItem(`ruta-rapida-${productId}`) === '1'
+  } catch {
+    return false
+  }
+}
+
+function saveQuick(productId: string, v: boolean) {
+  try {
+    localStorage.setItem(`ruta-rapida-${productId}`, v ? '1' : '0')
+  } catch {
+    // sin almacenamiento: el filtro vale solo mientras la página está abierta
+  }
 }
