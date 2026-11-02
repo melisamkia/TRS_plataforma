@@ -37,7 +37,7 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 ### 1. Supabase (base de datos y login)
 
 1. Crear un proyecto en Supabase.
-2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden (primero `..._init.sql`, después `..._keep_alive.sql`) y al final `supabase/seed.sql` (el contenido inicial).
+2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
 4. Authentication → Email Templates: traducir el mail del enlace mágico al español.
 5. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
