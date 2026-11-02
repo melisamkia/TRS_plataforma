@@ -37,7 +37,7 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 ### 1. Supabase (base de datos y login)
 
 1. Crear un proyecto en Supabase.
-2. En SQL Editor, correr `supabase/migrations/20261026000000_init.sql` y después `supabase/seed.sql` (el contenido inicial).
+2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
 4. Authentication → Email Templates: traducir el mail del enlace mágico al español.
 5. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
@@ -61,6 +61,14 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 ### 4. Dar acceso a las compradoras
 
 Admin → Alumnas y accesos: pegar los mails o el CSV de ventas de Beacons, elegir The Reel Studio (B-Rolls se suma solo) y marcar "Fundadora" para las de preventa.
+
+### 5. Que no se pause (plan gratis)
+
+Supabase pausa los proyectos gratis después de una semana sin actividad. La acción de GitHub `Mantener Supabase activo` (`.github/workflows/supabase-keep-alive.yml`) le escribe a la base una vez por día para evitarlo.
+
+1. En GitHub: Settings → Secrets and variables → Actions → New repository secret. Cargar `SUPABASE_URL` y `SUPABASE_ANON_KEY` (la clave publishable o anon del proyecto).
+2. Probarla: pestaña Actions → "Mantener Supabase activo" → Run workflow. Tiene que terminar en verde.
+3. Si alguna vez falla, GitHub te avisa por mail. En Supabase, la tabla `heartbeat` muestra el último latido.
 
 ## Falta definir
 

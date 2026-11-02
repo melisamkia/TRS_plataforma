@@ -1,0 +1,36 @@
+# Supabase pausa los proyectos del plan gratis después de una semana sin actividad.
+# Esta acción le escribe a la base de datos una vez por día para que eso no pase.
+# Necesita dos secrets del repo (Settings > Secrets and variables > Actions):
+#   SUPABASE_URL       ej: https://abcd1234.supabase.co
+#   SUPABASE_ANON_KEY  la clave publishable (o anon) del proyecto
+name: Mantener Supabase activo
+
+on:
+  schedule:
+    - cron: '23 13 * * *' # todos los días, 13:23 UTC
+  workflow_dispatch: # para correrla a mano desde la pestaña Actions
+
+jobs:
+  latido:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Latido a la base de datos
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning::Faltan los secrets SUPABASE_URL y SUPABASE_ANON_KEY. Mientras no estén, el proyecto se puede pausar."
+            exit 0
+          fi
+          # Las claves anon viejas son JWT (empiezan con eyJ) y van también como Bearer; las publishable nuevas, solo como apikey.
+          auth=()
+          case "$SUPABASE_ANON_KEY" in eyJ*) auth=(-H "Authorization: Bearer $SUPABASE_ANON_KEY") ;; esac
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 15 \
+            -X POST "${SUPABASE_URL%/}/rest/v1/rpc/keep_alive" \
+            -H "apikey: $SUPABASE_ANON_KEY" "${auth[@]}" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          echo
+          echo "Latido registrado."
