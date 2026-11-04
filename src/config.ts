@@ -4,7 +4,7 @@ export const PLATFORM_NAME = 'The Reel Studio'
 export const PLATFORM_BY = 'Meli & Clari'
 
 /** Grupo de soporte en Telegram. Pegá acá el link de invitación. */
-export const TELEGRAM_URL = ''
+export const TELEGRAM_URL = 'https://t.me/+tEZuLFkOD9xmMDA0'
 
 /** Horas de edición que ahorra cada reel (estimado, solo para el contador). */
 export const HOURS_PER_REEL = 2
@@ -28,7 +28,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: '¿Cómo entro a la plataforma?',
-    a: 'Con el mail con el que compraste. Te mandamos un enlace a tu correo y entras con un click, sin contraseña.',
+    a: 'Con el mail con el que compraste. Te mandamos un enlace a tu correo y entras con un click, sin contraseña. Solo pueden entrar los mails con una compra registrada; si acabas de comprar, espera un par de minutos.',
   },
   {
     q: 'Compré y no veo mi producto',
@@ -37,5 +37,9 @@ export const FAQ: { q: string; a: string }[] = [
   {
     q: '¿Cómo subo de nivel?',
     a: 'Terminando la instalación y publicando reels hechos con el sistema. Cada vez que publiques uno, márcalo con el botón "Publiqué un reel".',
+  },
+  {
+    q: '¿Recibo un certificado?',
+    a: 'Sí. Cuando terminas todas las clases se desbloquea tu certificado: escribes tu nombre, lo descargas en PDF y tienes un link para compartirlo que cualquiera puede verificar.',
   },
 ]

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { PLATFORM_BY, PLATFORM_NAME } from '../config'
 import { api } from '../lib/data'
 import { useStore } from '../lib/store'
+import { useNewVersion } from '../lib/useNewVersion'
 import { Clapper } from './bits'
 
 export function Layout() {
@@ -10,6 +11,7 @@ export function Layout() {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
   const close = () => setOpen(false)
+  const update = useNewVersion()
 
   return (
     <>
@@ -49,6 +51,16 @@ export function Layout() {
           </div>
         </div>
       )}
+      {update.available && (
+        <div className="demo-bar update-bar" role="status">
+          <div className="wrap">
+            <span>Hay una versión nueva de la plataforma.</span>
+            <button className="link-btn" type="button" onClick={update.reload}>
+              Actualizar
+            </button>
+          </div>
+        </div>
+      )}
       <main>
         <Outlet />
       </main>
@@ -69,12 +81,23 @@ export function Layout() {
         <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="cel-title" onClick={closeCelebration}>
           <div className="celebrate" onClick={(e) => e.stopPropagation()}>
             <Clapper scene="★" take="★" snap={1} />
-            <span className="eyebrow">Subiste de nivel</span>
+            <span className="eyebrow">{celebration.kicker ?? 'Subiste de nivel'}</span>
             <h2 id="cel-title">{celebration.title}</h2>
             <p className="muted">{celebration.body}</p>
-            <button className="btn" type="button" onClick={closeCelebration} autoFocus>
-              Seguir
-            </button>
+            {celebration.action ? (
+              <>
+                <Link className="btn" to={celebration.action.to} onClick={closeCelebration} autoFocus>
+                  {celebration.action.label}
+                </Link>
+                <button className="link-btn" type="button" onClick={closeCelebration}>
+                  Después
+                </button>
+              </>
+            ) : (
+              <button className="btn" type="button" onClick={closeCelebration} autoFocus>
+                Seguir
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
-import type { Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message)
@@ -87,6 +87,20 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       if (error) throw new Error('No pudimos cargar el video. Recarga la página o avísanos en el grupo de soporte.')
       return (data as { url?: string })?.url ?? null
     },
+    async listCertificates() {
+      return check(await sb.from('certificates').select('id,code,product_id,full_name,issued_at')) as Certificate[]
+    },
+    async issueCertificate(productId, fullName) {
+      const { data, error } = await sb.rpc('issue_certificate', { pid: productId, name: fullName })
+      if (error) throw new Error(error.message)
+      const c = data as Certificate & { user_id?: string }
+      return { id: c.id, code: c.code, product_id: c.product_id, full_name: c.full_name, issued_at: c.issued_at }
+    },
+    async verifyCertificate(code) {
+      const { data, error } = await sb.rpc('verify_certificate', { cert_code: code })
+      if (error) throw new Error('No pudimos verificar el certificado. Prueba de nuevo en un rato.')
+      return ((data as CertificateCheck[] | null) ?? [])[0] ?? null
+    },
 
     async saveProduct(p) {
       return check(await sb.from('products').upsert(p).select('*').single()) as Product
@@ -128,6 +142,11 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
     },
     async revokeAccess(id) {
       check(await sb.from('entitlements').delete().eq('id', id))
+    },
+    async listPurchases() {
+      return check(
+        await sb.from('purchases').select('id,email,product_id,status,detail,created_at').order('created_at', { ascending: false }).limit(50),
+      ) as Purchase[]
     },
     async resetDemo() {
       throw new Error('Solo disponible en modo demo.')

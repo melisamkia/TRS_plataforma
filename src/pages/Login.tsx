@@ -62,7 +62,7 @@ export function Login() {
               {api.mode === 'demo' ? 'Entrar a la demo' : 'Enviarme el enlace'}
             </button>
             {err && <p className="error">{err}</p>}
-            <p className="note">Sin contraseñas. Te llega un enlace al mail y entras con un click.</p>
+            <p className="note">Sin contraseñas. Usa el mail con el que compraste: te llega un enlace y entras con un click.</p>
           </form>
         )}
       </div>

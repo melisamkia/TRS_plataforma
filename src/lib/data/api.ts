@@ -1,4 +1,4 @@
-import type { Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Content, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
 
 /** Todo lo que la app necesita del backend. Hay dos versiones: demo (navegador) y Supabase. */
 export interface DataApi {
@@ -24,6 +24,11 @@ export interface DataApi {
   listUpdates(): Promise<Update[]>
   /** URL firmada del video (Bunny Stream). null si la clase no tiene video todavía. */
   getVideoUrl(lesson: Lesson): Promise<string | null>
+  listCertificates(): Promise<Certificate[]>
+  /** Emite el certificado (o corrige el nombre). Falla si faltan clases. */
+  issueCertificate(productId: string, fullName: string): Promise<Certificate>
+  /** Verificación pública: no hace falta sesión. */
+  verifyCertificate(code: string): Promise<CertificateCheck | null>
 
   // Admin
   saveProduct(p: Product): Promise<Product>
@@ -38,6 +43,8 @@ export interface DataApi {
   /** Da acceso a cada mail en cada producto (y en lo que esos productos incluyen). Devuelve cuántos accesos nuevos se crearon. */
   grantAccess(emails: string[], productIds: string[], founder: boolean): Promise<number>
   revokeAccess(entitlementId: string): Promise<void>
+  /** Últimas compras que llegaron solas. En demo, ninguna. */
+  listPurchases(): Promise<Purchase[]>
   /** Solo en demo: vuelve al contenido de ejemplo. */
   resetDemo(): Promise<void>
 }

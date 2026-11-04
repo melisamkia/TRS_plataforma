@@ -1,5 +1,5 @@
 // Contenido de ejemplo para el MODO DEMO. Se reemplaza desde el panel de admin.
-import type { Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
+import type { Certificate, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
 
 export interface DemoDb {
   profile: Profile
@@ -10,6 +10,7 @@ export interface DemoDb {
   progress: string[]
   reels: Reel[]
   updates: Update[]
+  certificates: Certificate[]
 }
 
 const TRS_CHECKOUT = 'https://shop.beacons.ai/ohmybots/e8e58546-ec74-4e85-95da-e2dfb81d5bd2'
@@ -227,6 +228,7 @@ export function createSeed(): DemoDb {
     ],
     progress: ['trs-m1-l1', 'trs-m1-l2', 'trs-m1-l3', 'trs-m2-l1'],
     reels: [],
+    certificates: [],
     updates: [
       {
         id: 'u1',

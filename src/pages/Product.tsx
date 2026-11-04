@@ -17,7 +17,7 @@ export function Product() {
 }
 
 function OwnedProduct({ product }: { product: P }) {
-  const { productContent, completed, entitlements, level, reels, addReel } = useStore()
+  const { productContent, completed, entitlements, level, reels, addReel, certificates } = useStore()
   const { modules, lessons } = productContent(product.id)
   const ent = entitlements.find((e) => e.product_id === product.id)
   const done = lessons.filter((l) => completed.has(l.id)).length
@@ -33,6 +33,8 @@ function OwnedProduct({ product }: { product: P }) {
     return m.id === firstOpen?.id ? 'now' : 'todo'
   }
   const nextLesson = lessons.find((l) => !completed.has(l.id))
+  const finished = lessons.length > 0 && !nextLesson
+  const hasCert = certificates.some((c) => c.product_id === product.id)
 
   const onReel = async (e: FormEvent) => {
     e.preventDefault()
@@ -69,6 +71,18 @@ function OwnedProduct({ product }: { product: P }) {
                   {done === 0 ? 'Empezar' : 'Seguir donde quedé'}
                 </Link>
               </div>
+            )}
+            {finished && (
+              <div style={{ marginTop: 22 }}>
+                <Link className="btn lime" to={`/certificado/${product.slug}`}>
+                  {hasCert ? 'Ver mi certificado' : 'Recibir mi certificado'}
+                </Link>
+              </div>
+            )}
+            {lessons.length > 0 && !finished && (
+              <p className="strip-label" style={{ marginTop: 12 }}>
+                Al terminar las {lessons.length} clases recibes tu certificado.
+              </p>
             )}
           </div>
           {product.gamified && ent && <Credential product={product} ent={ent} />}

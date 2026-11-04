@@ -9,7 +9,10 @@ const SESSION_KEY = 'elset-demo-session'
 function load(): DemoDb {
   try {
     const raw = localStorage.getItem(KEY)
-    if (raw) return JSON.parse(raw) as DemoDb
+    if (raw) {
+      const saved = JSON.parse(raw) as DemoDb
+      return { ...saved, certificates: saved.certificates ?? [] }
+    }
   } catch {
     // sin almacenamiento: seguimos con los datos de ejemplo en memoria
   }
@@ -104,6 +107,30 @@ export function createDemoApi(): DataApi {
     async getVideoUrl() {
       return null
     },
+    async listCertificates() {
+      return db.certificates
+    },
+    async issueCertificate(productId, fullName) {
+      const name = fullName.trim().replace(/\s+/g, ' ')
+      if (name.length < 2 || name.length > 80) throw new Error('Escribe tu nombre como quieres que aparezca (hasta 80 letras).')
+      const moduleIds = new Set(db.modules.filter((m) => m.product_id === productId).map((m) => m.id))
+      const lessons = db.lessons.filter((l) => moduleIds.has(l.module_id))
+      const done = new Set(db.progress)
+      if (lessons.length === 0 || lessons.some((l) => !done.has(l.id))) throw new Error('Te faltan clases por terminar para recibir el certificado.')
+      const prev = db.certificates.find((c) => c.product_id === productId)
+      const cert = prev
+        ? { ...prev, full_name: name }
+        : { id: newId(), code: newId().replace(/-/g, '').slice(0, 10).toUpperCase(), product_id: productId, full_name: name, issued_at: new Date().toISOString() }
+      db = { ...db, certificates: upsert(db.certificates, cert), profile: { ...db.profile, full_name: name } }
+      save()
+      return cert
+    },
+    async verifyCertificate(code) {
+      const c = db.certificates.find((x) => x.code === code.trim().toUpperCase())
+      if (!c) return null
+      const product = db.products.find((p) => p.id === c.product_id)
+      return { full_name: c.full_name, product_title: product?.title ?? '', issued_at: c.issued_at }
+    },
 
     async saveProduct(p) {
       db = { ...db, products: upsert(db.products, p) }
@@ -170,6 +197,9 @@ export function createDemoApi(): DataApi {
     async revokeAccess(id) {
       db = { ...db, entitlements: db.entitlements.filter((e) => e.id !== id) }
       save()
+    },
+    async listPurchases() {
+      return []
     },
     async resetDemo() {
       db = createSeed()

@@ -7,6 +7,8 @@ La plataforma de miembros (concepto "El Set") de The Reel Studio y del resto de 
 - **Novedades**: las actualizaciones del sistema, con fecha.
 - **En cartelera**: los otros productos que puede comprar, como afiches de cine.
 
+Al terminar todas las clases de un producto se desbloquea el **certificado**: la alumna escribe su nombre, lo descarga en PDF y tiene un link público (`/verificar/CÓDIGO`) para compartirlo y que cualquiera compruebe que es real.
+
 Dentro de The Reel Studio hay niveles (Aprendiz, Creadora, Directora, Estrella), una credencial numerada de fundadora y una tira de película que se llena a medida que avanza. Se sube de nivel haciendo, no mirando: terminar la instalación y publicar reels.
 
 ## Probarla
@@ -40,7 +42,8 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
 4. Authentication → Email Templates: traducir el mail del enlace mágico al español.
-5. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
+5. **Solo entran las que compraron**: Authentication → Hooks → "Before User Created" → tipo Postgres → función `public.hook_solo_compradoras`. Desde ahí, un mail sin compra cargada no puede crear cuenta (las cuentas que ya existen, como las de admin, siguen entrando).
+6. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
    ```sql
    update public.profiles set is_admin = true where email in ('mail-de-meli', 'mail-de-clari');
    ```
@@ -55,12 +58,29 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 
 ### 3. Netlify (la página)
 
-1. Nuevo sitio desde este repositorio. Netlify lee `netlify.toml` solo.
-2. Variables de entorno: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API).
+1. Entrar a https://app.netlify.com con la cuenta de GitHub. Si en "Sites" no aparece la plataforma, todavía no está conectada: **Add new site → Import an existing project → GitHub → `TRS_plataforma`**. Netlify lee `netlify.toml` solo.
+2. Site configuration → Environment variables: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` (Supabase → Project Settings → API). Después: Deploys → Trigger deploy.
+3. La dirección queda tipo `algo.netlify.app` (se cambia en Domain management). Esa dirección va en Supabase → Authentication → URL Configuration.
+
+**Actualizaciones solas**: cada vez que se suben cambios a la rama `main` de GitHub, Netlify publica la versión nueva sola (1–2 minutos). Las alumnas que tienen la plataforma abierta no tienen que hacer nada: la app se da cuenta sola (revisa cada 5 minutos y al volver a la pestaña), muestra "Hay una versión nueva" y se actualiza al pasar a otra pantalla. El contenido (clases, novedades, accesos) no necesita publicar nada: se cambia desde el Admin y se ve al instante.
 
 ### 4. Dar acceso a las compradoras
 
-Admin → Alumnas y accesos: pegar los mails o el CSV de ventas de Beacons, elegir The Reel Studio (B-Rolls se suma solo) y marcar "Fundadora" para las de preventa.
+**A mano**: Admin → Alumnas y accesos: pegar los mails o el CSV de ventas de Beacons, elegir The Reel Studio (B-Rolls se suma solo) y marcar "Fundadora" para las de preventa.
+
+**Automático (función `compra`)**: recibe el aviso de cada venta y carga el acceso sola. Cada aviso queda en Admin → Alumnas y accesos → "Compras automáticas".
+
+1. Supabase → Edge Functions → Secrets: cargar `COMPRA_CLAVE` (una clave larga inventada, ej. 30 letras y números al azar).
+2. Publicarla: `supabase functions deploy compra --no-verify-jwt`.
+3. La dirección del aviso es (una por producto):
+   ```
+   https://<proyecto>.supabase.co/functions/v1/compra?clave=<COMPRA_CLAVE>&producto=the-reel-studio
+   ```
+   Para la preventa sumar `&fundadora=1`. El mail de la compradora lo encuentra solo en lo que llegue.
+4. Conectar quién avisa. Beacons hoy no manda avisos de venta propios (solo desde el bloque de mails a Zapier), así que hay dos caminos:
+   - **Stripe** (si Beacons cobra con su Stripe): Stripe → Developers → Webhooks → Add endpoint → pegar la dirección → evento `checkout.session.completed`. Ojo: avisa todas las ventas de esa cuenta de Stripe, así que sirve mientras se venda un solo producto ahí.
+   - **Zapier o Make**: disparador de la venta (Stripe, PayPal o Gmail con el mail de "nueva venta" de Beacons) → acción "Webhooks: POST" a la dirección de arriba, con el mail en un campo `email`.
+5. Probarla: hacer una compra de prueba (o mandar el POST desde Zapier) y mirar "Compras automáticas" en el admin.
 
 ### 5. Que no se pause (plan gratis)
 
@@ -72,10 +92,9 @@ Supabase pausa los proyectos gratis después de una semana sin actividad. La acc
 
 ## Falta definir
 
-- **Link del grupo de Telegram**: completar `TELEGRAM_URL` en `src/config.ts`.
-- **Accesos automáticos desde Beacons**: hay que confirmar si Beacons avisa cada venta (webhook). Mientras tanto, los accesos se cargan desde el admin.
+- **Quién avisa las ventas**: elegir Stripe o Zapier/Make (ver paso 4) según cómo cobra Beacons.
 - **Links de compra** de los productos de la Cartelera: se cargan en Admin → Productos.
-- Para la versión 2: muro de reels de la comunidad, racha de semanas publicando, certificado al terminar y resumen mensual.
+- Para la versión 2: muro de reels de la comunidad, racha de semanas publicando y resumen mensual.
 
 ## Carpetas
 
@@ -86,7 +105,7 @@ src/lib/data/            conexión con Supabase y modo demo
 src/pages/               pantallas de alumna
 src/pages/admin/         panel de admin
 supabase/migrations/     tablas y permisos (cada alumna ve solo lo que compró)
-supabase/functions/      link firmado de los videos de Bunny
+supabase/functions/      video-token (link firmado de Bunny) y compra (accesos automáticos)
 ```
 
 Si cambiás el contenido de ejemplo en `seed.ts`, regenerá el SQL con `npm run seed:sql`.
