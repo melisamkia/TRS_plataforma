@@ -31,11 +31,16 @@ begin
   if length(clean) < 2 or length(clean) > 80 then raise exception 'Escribe tu nombre como quieres que aparezca (hasta 80 letras).'; end if;
   if not public.owns_product(pid) then raise exception 'No tienes acceso a este producto.'; end if;
 
-  select count(*), count(*) filter (where p.lesson_id is null) into total, pending
-  from public.lessons l
-  join public.modules m on m.id = l.module_id
-  left join public.progress p on p.lesson_id = l.id and p.user_id = auth.uid()
-  where m.product_id = pid;
+  -- Cada "cosa por hacer" es una clase, salvo las alternativas (Mac o Windows) de una escena, que cuentan como una.
+  select count(*), count(*) filter (where not hecho) into total, pending
+  from (
+    select bool_or(p.lesson_id is not null) as hecho
+    from public.lessons l
+    join public.modules m on m.id = l.module_id
+    left join public.progress p on p.lesson_id = l.id and p.user_id = auth.uid()
+    where m.product_id = pid
+    group by case when l.alt_group is null then l.id::text else l.module_id::text || '::' || l.alt_group end
+  ) slots;
 
   if total = 0 or pending > 0 then raise exception 'Te faltan clases por terminar para recibir el certificado.'; end if;
 
@@ -103,7 +108,3 @@ revoke all on function public.hook_solo_compradoras(jsonb) from public, anon, au
 grant execute on function public.hook_solo_compradoras(jsonb) to supabase_auth_admin;
 grant usage on schema public to supabase_auth_admin;
 grant select on public.entitlements to supabase_auth_admin;
-
--- ---------- Guía escrita de cada clase (se ve debajo del video) ----------
-
-alter table public.lessons add column guide text not null default '';

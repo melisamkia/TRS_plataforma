@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Credential, Poster, Ticket, formatDate, pad2 } from '../components/bits'
 import { TELEGRAM_URL } from '../config'
-import { levelName } from '../lib/levels'
+import { isSatisfied, levelName, summarize } from '../lib/levels'
 import { useStore } from '../lib/store'
 
 export function Home() {
@@ -15,7 +15,7 @@ export function Home() {
   // Seguir donde quedaste: primera clase sin terminar del producto principal
   const main = gamified ?? owned[0]
   const mainContent = main ? productContent(main.id) : null
-  const nextLesson = mainContent?.lessons.find((l) => !completed.has(l.id))
+  const nextLesson = mainContent?.lessons.find((l) => !isSatisfied(l, mainContent.lessons, completed))
   const nextModuleIndex = nextLesson && mainContent ? mainContent.modules.findIndex((m) => m.id === nextLesson.module_id) : -1
   const nextModule = nextModuleIndex >= 0 ? mainContent!.modules[nextModuleIndex] : null
 
@@ -55,7 +55,7 @@ export function Home() {
             </div>
             <div className="resume">
               <Link to={`/clase/${nextLesson.id}`} className="thumb" aria-label={`Ver ${nextLesson.title}`}>
-                <span className="play" aria-hidden="true" />
+                {nextLesson.kind === 'guia' ? <span className="guide-badge">GUÍA</span> : <span className="play" aria-hidden="true" />}
                 <span className="meta">
                   ESCENA {pad2(nextModuleIndex + 1)} · {nextModule.title.toUpperCase()}
                 </span>
@@ -92,15 +92,14 @@ export function Home() {
           ) : (
             <div className="tickets">
               {owned.map((p) => {
-                const c = productContent(p.id)
-                const done = c.lessons.filter((l) => completed.has(l.id)).length
+                const { done, total } = summarize(productContent(p.id), completed)
                 return (
                   <Ticket
                     key={p.id}
                     product={p}
                     ent={entitlements.find((e) => e.product_id === p.id)}
                     done={done}
-                    total={c.lessons.length}
+                    total={total}
                     level={p.gamified ? level(p.id) : null}
                   />
                 )

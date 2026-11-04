@@ -1,5 +1,6 @@
 // Contenido de ejemplo para el MODO DEMO. Se reemplaza desde el panel de admin.
 import type { Certificate, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
+import { CURSO_TRS, type EscenaSeed } from './curso-trs'
 
 export interface DemoDb {
   profile: Profile
@@ -143,71 +144,60 @@ const products: Product[] = [
   },
 ]
 
-type LessonSeed = [title: string, description: string]
-
-const trsModules: [title: string, summary: string, milestone: boolean, lessons: LessonSeed[]][] = [
-  ['Bienvenida al set', 'Quiénes somos, cómo usar la plataforma y dónde pedir ayuda.', false, [
-    ['Hola, somos Meli y Clari', 'Qué vas a lograr con The Reel Studio y cómo está armado.'],
-    ['Cómo usar la plataforma', 'Dónde está cada cosa, cómo marcar tus clases y cómo subir de nivel.'],
-    ['Súmate al grupo de soporte', 'Entra al grupo de Telegram para tus dudas de instalación y uso.'],
-  ]],
-  ['Instalación', 'Deja el sistema funcionando en tu computadora.', true, [
-    ['Lo que necesitas antes de empezar', 'Computadora, cuenta de Claude Pro y, si quieres, CapCut de escritorio.'],
-    ['Instala el sistema paso a paso', 'Sigue cada paso con nosotras. Si te trabas, escríbenos en el grupo.'],
-    ['Tu primera prueba con un video', 'Edita tu primer video de prueba para confirmar que todo funciona.'],
-  ]],
-  ['Tu estilo', 'Tus fuentes, tus colores y tu ritmo, guardados para siempre.', false, [
-    ['Elige tu plantilla', 'Si todavía no tienes estilo definido, empieza con una de nuestras plantillas.'],
-    ['Guarda tus fuentes y colores', 'Carga tu marca una sola vez y el sistema la usa en cada reel.'],
-    ['Define el ritmo de tus reels', 'Cortes, textos en pantalla y velocidad, a tu medida.'],
-  ]],
-  ['Grabación rápida', 'El método para grabar en bloque y sin miedo a equivocarte.', false, [
-    ['El método para grabar en bloque', 'Graba el contenido de varias semanas en una sola sesión.'],
-    ['Graba de corrido, con errores incluidos', 'El sistema corta silencios, errores y tomas de más.'],
-  ]],
-  ['Tu primer reel', 'De video crudo a reel listo para publicar.', false, [
-    ['De video crudo a reel listo', 'Pásale tu grabación al sistema y recibe el reel editado.'],
-    ['Revisa y ajusta el resultado', 'Qué mirar antes de publicar y cómo pedir cambios.'],
-    ['Publica y márcalo acá', 'Sube tu reel y márcalo con el botón "Publiqué un reel" para subir de nivel.'],
-  ]],
-  ['Carruseles e historias', 'Todo tu contenido de la semana a partir de una sola grabación.', false, [
-    ['Tu carrusel desde el mismo video', 'El sistema arma el carrusel con tu estilo.'],
-    ['Tus historias con tu estilo', 'Historias listas para subir, con tus fuentes y colores.'],
-  ]],
-  ['Toque final en CapCut', 'Opcional, para quien quiera terminar el reel en CapCut.', false, [
-    ['Abre tu reel en CapCut', 'Cómo pasar el reel del sistema a CapCut de escritorio.'],
-    ['Ajustes finales', 'Los toques que vale la pena hacer a mano.'],
-  ]],
+const brollModules: EscenaSeed[] = [
+  {
+    title: 'B-Rolls Forever',
+    summary: 'Graba una vez y ten tomas de apoyo para meses.',
+    pieces: [
+      { kind: 'video', title: 'Qué es un B-Roll y por qué te salva', description: 'Las tomas de apoyo que hacen que un reel se mire hasta el final.', from: [] },
+      { kind: 'video', title: 'Graba una vez, B-Rolls para meses', description: 'El método para armar tu banco de tomas en una tarde.', from: [] },
+      { kind: 'video', title: 'Ordena tu banco de B-Rolls', description: 'Cómo guardarlos para encontrarlos en segundos.', from: [] },
+    ],
+  },
+  {
+    title: 'B-Rolls con IA',
+    summary: 'Cuando no tienes tiempo de grabar, créalos con IA.',
+    pieces: [
+      { kind: 'video', title: 'Crea B-Rolls con IA', description: 'Herramientas y pasos para generar tus propias tomas.', from: [] },
+      { kind: 'video', title: 'Tus prompts para B-Rolls', description: 'Plantillas de prompts para que las tomas se vean de tu marca.', from: [] },
+    ],
+  },
 ]
 
-const brollModules: [title: string, summary: string, milestone: boolean, lessons: LessonSeed[]][] = [
-  ['B-Rolls Forever', 'Graba una vez y ten tomas de apoyo para meses.', false, [
-    ['Qué es un B-Roll y por qué te salva', 'Las tomas de apoyo que hacen que un reel se mire hasta el final.'],
-    ['Graba una vez, B-Rolls para meses', 'El método para armar tu banco de tomas en una tarde.'],
-    ['Ordena tu banco de B-Rolls', 'Cómo guardarlos para encontrarlos en segundos.'],
-  ]],
-  ['B-Rolls con IA', 'Cuando no tienes tiempo de grabar, créalos con IA.', false, [
-    ['Crea B-Rolls con IA', 'Herramientas y pasos para generar tus propias tomas.'],
-    ['Tus prompts para B-Rolls', 'Plantillas de prompts para que las tomas se vean de tu marca.'],
-  ]],
-]
+/** Dos ejemplos de texto para que la demo muestre una guía y un resumen abajo del video. */
+const DEMO_BODIES: Record<string, string> = {
+  'Lo que necesitas antes de empezar': `## Antes de instalar, revisa esto
+- **Una computadora** Mac o Windows.
+- **Claude Pro** o un plan superior.
+- **La app de escritorio de Claude.** La instalas en el próximo video.
+- **Unos 10 GB libres** en tu compu.
+- **CapCut de escritorio**, solo si quieres retocar tus reels a mano. Es opcional.
 
-function buildContent(productId: string, prefix: string, seed: typeof trsModules) {
+> El celular te sirve para ver las clases, pero el studio funciona solo en la computadora.`,
+  'Instala Claude': `1. Entra a claude.com/download y baja la app para tu compu.
+2. Ábrela y entra con tu cuenta de Claude.
+3. Busca la pestaña **Code**: ahí vas a abrir tu studio en el próximo video.`,
+}
+
+function buildContent(productId: string, prefix: string, seed: EscenaSeed[]) {
   const modules: Module[] = []
   const lessons: Lesson[] = []
-  seed.forEach(([title, summary, milestone, ls], mi) => {
+  seed.forEach((esc, mi) => {
     const moduleId = `${prefix}-m${mi + 1}`
-    modules.push({ id: moduleId, product_id: productId, title, summary, is_milestone: milestone, sort: mi + 1 })
-    ls.forEach(([lt, ld], li) => {
+    modules.push({ id: moduleId, product_id: productId, title: esc.title, summary: esc.summary, is_milestone: !!esc.milestone, sort: mi + 1 })
+    esc.pieces.forEach((pz, li) => {
       lessons.push({
         id: `${moduleId}-l${li + 1}`,
         module_id: moduleId,
-        title: lt,
-        description: ld,
+        kind: pz.kind,
+        title: pz.title,
+        description: pz.description,
+        body: DEMO_BODIES[pz.title] ?? '',
         video_id: null,
-        duration: null,
+        duration: pz.min ? `${pz.min} min` : null,
         resources: [],
-        guide: '',
+        essential: !!pz.essential,
+        alt_group: pz.alt ?? null,
         sort: li + 1,
       })
     })
@@ -216,7 +206,7 @@ function buildContent(productId: string, prefix: string, seed: typeof trsModules
 }
 
 export function createSeed(): DemoDb {
-  const trs = buildContent('p-trs', 'trs', trsModules)
+  const trs = buildContent('p-trs', 'trs', CURSO_TRS)
   const br = buildContent('p-brolls', 'br', brollModules)
   return {
     profile: { id: 'demo-user', email: 'demo@ejemplo.com', full_name: 'Meli', is_admin: true },

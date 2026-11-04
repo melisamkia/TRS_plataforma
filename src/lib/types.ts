@@ -43,17 +43,25 @@ export interface Resource {
   url: string
 }
 
+/** Video: se graba (y lleva un resumen abajo). Guía: se lee en la misma pantalla. */
+export type LessonKind = 'video' | 'guia'
+
 export interface Lesson {
   id: string
   module_id: string
+  kind: LessonKind
   title: string
   description: string
+  /** Texto con formato simple: la guía completa, o el resumen que va abajo del video. */
+  body: string
   /** ID del video en Bunny Stream. Vacío = video en preparación. */
   video_id: string | null
   duration: string | null
   resources: Resource[]
-  /** Guía escrita que se ve debajo del video (formato simple, ver src/lib/guide.ts). */
-  guide: string
+  /** Parte de la ruta rápida: lo mínimo para llegar a Directora. */
+  essential: boolean
+  /** Clases alternativas (ej: "Mac o Windows"): con terminar una alcanza. */
+  alt_group: string | null
   sort: number
 }
 

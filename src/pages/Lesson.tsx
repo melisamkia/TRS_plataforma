@@ -1,8 +1,9 @@
-import { Guide } from '../components/Guide'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Clapper, pad2 } from '../components/bits'
 import { api } from '../lib/data'
+import { isSatisfied } from '../lib/levels'
+import { Markdown } from '../lib/markdown'
 import { useStore } from '../lib/store'
 import type { Lesson as L } from '../lib/types'
 import { NotFound } from './NotFound'
@@ -18,12 +19,16 @@ export function Lesson() {
 
   const { modules, lessons } = productContent(product.id)
   const idx = lessons.findIndex((l) => l.id === lesson.id)
-  const prev = idx > 0 ? lessons[idx - 1] : null
-  const next = idx < lessons.length - 1 ? lessons[idx + 1] : null
+  // Anterior y siguiente saltean la alternativa de esta clase (de Mac no se pasa a Windows)
+  const sameAlt = (l: L) => !!lesson.alt_group && l.module_id === lesson.module_id && l.alt_group === lesson.alt_group
+  const prev = [...lessons.slice(0, idx)].reverse().find((l) => !sameAlt(l)) ?? null
+  const next = lessons.slice(idx + 1).find((l) => !sameAlt(l)) ?? null
   const mi = modules.findIndex((m) => m.id === lesson.module_id)
   const mod = modules[mi]
   const take = lessons.filter((l) => l.module_id === lesson.module_id).findIndex((l) => l.id === lesson.id) + 1
   const isDone = completed.has(lesson.id)
+  const isGuide = lesson.kind === 'guia'
+  const word = isGuide ? 'guía' : 'clase'
 
   const finish = async () => {
     setSnap((s) => s + 1)
@@ -38,17 +43,29 @@ export function Lesson() {
         </p>
         <div className="lesson-grid">
           <div style={{ minWidth: 0 }}>
-            <div className="player">
-              <Clapper scene={pad2(mi + 1)} take={pad2(take)} snap={snap} />
-              <VideoBox lesson={lesson} />
-            </div>
+            {isGuide ? (
+              <div className="guide-head">
+                <span>GUÍA</span>
+                <span>
+                  ESCENA {pad2(mi + 1)} · {pad2(take)}
+                </span>
+              </div>
+            ) : (
+              <div className="player">
+                <Clapper scene={pad2(mi + 1)} take={pad2(take)} snap={snap} />
+                <VideoBox lesson={lesson} />
+              </div>
+            )}
             <div className="lesson-body">
               <span className="eyebrow">
                 Escena {pad2(mi + 1)} · {mod?.title}
                 {lesson.duration ? ` · ${lesson.duration}` : ''}
+                {lesson.alt_group ? ` · ${lesson.alt_group}` : ''}
               </span>
               <h1>{lesson.title}</h1>
-              {lesson.description && <p style={{ whiteSpace: 'pre-line' }}>{lesson.description}</p>}
+              {lesson.description && <p className="lede">{lesson.description}</p>}
+              {isGuide &&
+                (lesson.body.trim() ? <Markdown text={lesson.body} /> : <p className="empty-note">Estamos escribiendo esta guía.</p>)}
               <div className="lesson-actions">
                 {isDone ? (
                   <>
@@ -59,20 +76,25 @@ export function Lesson() {
                   </>
                 ) : (
                   <button className="btn" type="button" onClick={finish}>
-                    Terminé esta clase
+                    Terminé esta {word}
                   </button>
                 )}
                 {isDone && next && (
                   <Link className="btn ghost" to={`/clase/${next.id}`}>
-                    Siguiente clase →
+                    Siguiente →
                   </Link>
                 )}
               </div>
-              {lesson.guide && <Guide source={lesson.guide} />}
+              {!isGuide && lesson.body.trim() && (
+                <section className="summary" aria-label="Resumen de la clase">
+                  <p className="eyebrow">Resumen de la clase</p>
+                  <Markdown text={lesson.body} />
+                </section>
+              )}
               {lesson.resources.length > 0 && (
                 <div>
                   <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    Links
+                    Descargas y links
                   </p>
                   <ul className="resources">
                     {lesson.resources.map((r) => (
@@ -116,8 +138,11 @@ export function Lesson() {
                   .filter((l) => l.module_id === m.id)
                   .map((l) => (
                     <Link key={l.id} to={`/clase/${l.id}`} className={l.id === lesson.id ? 'cur' : ''} aria-current={l.id === lesson.id ? 'page' : undefined}>
-                      <span className={`dot${completed.has(l.id) ? ' on' : ''}`} aria-hidden="true" />
-                      <span>{l.title}</span>
+                      <span className={`dot${isSatisfied(l, lessons, completed) ? ' on' : ''}`} aria-hidden="true" />
+                      <span>
+                        {l.title}
+                        {l.kind === 'guia' && <small className="side-kind"> · guía</small>}
+                      </span>
                     </Link>
                   ))}
               </div>

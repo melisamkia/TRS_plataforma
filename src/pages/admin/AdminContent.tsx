@@ -42,12 +42,15 @@ export function AdminContent() {
   const newLesson = (m: Module): Lesson => ({
     id: newId(),
     module_id: m.id,
+    kind: 'video',
     title: '',
     description: '',
+    body: '',
     video_id: null,
     duration: null,
     resources: [],
-    guide: '',
+    essential: false,
+    alt_group: null,
     sort: (lessonsOf(m).slice(-1)[0]?.sort ?? 0) + 1,
   })
 
@@ -142,7 +145,14 @@ export function AdminContent() {
                       {pad2(li + 1)} · {l.title}
                     </b>
                     <small>
-                      {l.video_id ? `Video: ${l.video_id}` : 'Sin video todavía'}
+                      {l.kind === 'guia'
+                        ? `Guía${l.body.trim() ? '' : ' sin texto todavía'}`
+                        : l.video_id
+                          ? `Video: ${l.video_id}`
+                          : 'Video sin subir todavía'}
+                      {l.kind === 'video' && !l.body.trim() ? ' · falta el resumen' : ''}
+                      {l.essential ? ' · Ruta rápida' : ''}
+                      {l.alt_group ? ` · ${l.alt_group}` : ''}
                       {l.duration ? ` · ${l.duration}` : ''}
                       {l.resources.length ? ` · ${l.resources.length} descarga${l.resources.length > 1 ? 's' : ''}` : ''}
                     </small>
@@ -241,41 +251,64 @@ function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: 
   const [res, setRes] = useState(resourcesToText(initial.resources))
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    onSave({ ...l, video_id: l.video_id?.trim() || null, duration: l.duration?.trim() || null, resources: textToResources(res) })
+    onSave({
+      ...l,
+      video_id: l.kind === 'video' ? l.video_id?.trim() || null : null,
+      duration: l.duration?.trim() || null,
+      alt_group: l.alt_group?.trim() || null,
+      resources: textToResources(res),
+    })
   }
+  const isGuide = l.kind === 'guia'
   return (
     <form className="editor" onSubmit={submit} style={{ marginBottom: 0 }}>
       <div className="form-grid">
-        <label className="field full">
-          <span>Título de la clase</span>
-          <input id="le-title" required value={l.title} onChange={(e) => setL({ ...l, title: e.target.value })} />
-        </label>
-        <label className="field full">
-          <span>Descripción</span>
-          <textarea id="le-desc" value={l.description} onChange={(e) => setL({ ...l, description: e.target.value })} />
-        </label>
         <label className="field">
-          <span>ID del video en Bunny Stream</span>
-          <input id="le-video" value={l.video_id ?? ''} placeholder="ej: 3f2a9c1e-..." onChange={(e) => setL({ ...l, video_id: e.target.value })} />
-          <small>En Bunny: Stream → tu biblioteca → el video → copia el "Video ID".</small>
+          <span>Tipo</span>
+          <select id="le-kind" value={l.kind} onChange={(e) => setL({ ...l, kind: e.target.value as Lesson['kind'] })}>
+            <option value="video">Video (con resumen abajo)</option>
+            <option value="guia">Guía para leer</option>
+          </select>
         </label>
         <label className="field">
           <span>Duración (opcional)</span>
-          <input id="le-dur" value={l.duration ?? ''} placeholder="12:40" onChange={(e) => setL({ ...l, duration: e.target.value })} />
+          <input id="le-dur" value={l.duration ?? ''} placeholder={isGuide ? '5 min de lectura' : '12 min'} onChange={(e) => setL({ ...l, duration: e.target.value })} />
         </label>
         <label className="field full">
-          <span>Guía de la clase (se ve debajo del video)</span>
-          <textarea
-            id="le-guide"
-            rows={14}
-            value={l.guide ?? ''}
-            onChange={(e) => setL({ ...l, guide: e.target.value })}
-            placeholder={'## Título\nTexto normal, con **negrita**.\n\n1. Primer paso\n2. Segundo paso\n\n> Consejo en recuadro\n\n```\nTexto para copiar (un prompt, un comando)\n```\n\n![descripción](link de una imagen)'}
-          />
-          <small>## título · 1. paso · - punto · &gt; consejo · ``` texto para copiar ``` · ![foto](link) · **negrita** · [texto](link)</small>
+          <span>Título</span>
+          <input id="le-title" required value={l.title} onChange={(e) => setL({ ...l, title: e.target.value })} />
         </label>
         <label className="field full">
-          <span>Links (opcional)</span>
+          <span>Descripción corta</span>
+          <textarea id="le-desc" rows={2} value={l.description} onChange={(e) => setL({ ...l, description: e.target.value })} />
+          <small>Aparece debajo del título. Una o dos líneas.</small>
+        </label>
+        {!isGuide && (
+          <label className="field full">
+            <span>ID del video en Bunny Stream</span>
+            <input id="le-video" value={l.video_id ?? ''} placeholder="ej: 3f2a9c1e-..." onChange={(e) => setL({ ...l, video_id: e.target.value })} />
+            <small>En Bunny: Stream → tu biblioteca → el video → copia el "Video ID".</small>
+          </label>
+        )}
+        <label className="field full">
+          <span>{isGuide ? 'Texto de la guía' : 'Resumen o mini guía (va abajo del video)'}</span>
+          <textarea id="le-body" rows={isGuide ? 14 : 8} value={l.body} onChange={(e) => setL({ ...l, body: e.target.value })} />
+          <small>
+            Formato: <code>## Título</code> · <code>- punto</code> · <code>1. paso</code> · <code>&gt; consejo</code> · <code>**negrita**</code> ·{' '}
+            <code>[texto](link)</code> · <code>![descripción](link de la imagen)</code>
+          </small>
+        </label>
+        <label className="check">
+          <input id="le-essential" type="checkbox" checked={l.essential} onChange={(e) => setL({ ...l, essential: e.target.checked })} />
+          <span>Ruta rápida: es parte de lo mínimo para llegar a Directora</span>
+        </label>
+        <label className="field">
+          <span>Alternativa (opcional)</span>
+          <input id="le-alt" value={l.alt_group ?? ''} placeholder="Mac o Windows" onChange={(e) => setL({ ...l, alt_group: e.target.value })} />
+          <small>Si dos clases de la escena tienen el mismo texto acá, con terminar una alcanza.</small>
+        </label>
+        <label className="field full">
+          <span>Descargas y links</span>
           <textarea id="le-res" value={res} placeholder={'Una por línea: Texto | link\nPlantilla de estilo | https://drive.google.com/...'} onChange={(e) => setRes(e.target.value)} />
         </label>
       </div>

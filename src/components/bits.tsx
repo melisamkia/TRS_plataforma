@@ -101,7 +101,7 @@ export function Ticket({
               <i style={{ width: `${pct}%` }} />
             </div>
             <span className="prog-label">
-              {done} de {total} clases{level !== null ? ` · Nivel ${level + 1}: ${levelName(level)}` : ''}
+              {done} de {total} terminadas{level !== null ? ` · Nivel ${level + 1}: ${levelName(level)}` : ''}
             </span>
           </>
         )}

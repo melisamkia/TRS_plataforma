@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from './data'
-import { levelIndex, levelName, summarize } from './levels'
+import { isComplete, levelIndex, levelName, summarize } from './levels'
 import type { Certificate, Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from './types'
 
 export interface Celebration {
@@ -164,8 +164,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (done) {
         const after = product ? levelWith(product.id, next, reels.length) : 0
         const lessons = product ? productContent(product.id).lessons : []
-        const wasComplete = lessons.length > 0 && lessons.every((l) => completed.has(l.id))
-        const nowComplete = lessons.length > 0 && lessons.every((l) => next.has(l.id))
+        const wasComplete = isComplete(lessons, completed)
+        const nowComplete = isComplete(lessons, next)
         if (product && nowComplete && !wasComplete) {
           setCelebration({
             kicker: 'Terminaste el programa',

@@ -26,10 +26,13 @@ Otros comandos: `npm test` (pruebas), `npm run typecheck`, `npm run build`.
 
 | En la plataforma | Qué es |
 | --- | --- |
-| Escena | Un módulo (ej: Instalación, Tu estilo) |
-| Clase | Un video dentro de una escena |
+| Escena | Un módulo (ej: Instalación, La edición) |
+| Video | Una clase grabada, con un resumen o mini guía abajo |
+| Guía | Una clase para leer: pasos, listas e imágenes |
+| Ruta rápida | Lo mínimo para llegar a Directora. Las alumnas la pueden filtrar |
+| Alternativa | Piezas donde alcanza con hacer una (ej: Mac o Windows) |
 | Credencial | El número de alumna. Las de preventa dicen "Fundadora" |
-| Niveles | Aprendiz → Creadora (terminó la instalación) → Directora (primer reel) → Estrella (4 reels) |
+| Niveles | Aprendiz → Creadora (terminó la ruta rápida de Instalación) → Directora (primer reel) → Estrella (4 reels) |
 | En cartelera | La galería de otros productos |
 
 Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/config.ts`.
@@ -83,20 +86,6 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
    - Los reembolsos y pagos pendientes se ignoran solos. Ojo: avisan todas las ventas de esa cuenta, así que sirve mientras se venda un solo producto ahí.
 5. Probarla: hacer una compra de prueba (o mandar el POST desde Zapier) y mirar "Compras automáticas" en el admin.
 
-### Guías de las clases
-
-Cada clase tiene una guía escrita que se ve debajo del video (no es descargable). Se escribe en Admin → Escenas y clases → Editar clase → "Guía de la clase", con este formato:
-
-```
-## Título            ### Subtítulo
-1. Paso numerado     - Punto
-> Consejo (recuadro verde)
-**negrita**   `nombre exacto`   [texto](link)
-![descripción](link de una imagen)
-```
-
-Y entre dos líneas con tres comillas invertidas (```) va un texto para copiar con botón "Copiar" (prompts, comandos).
-
 ### 5. Que no se pause (plan gratis)
 
 Supabase pausa los proyectos gratis después de una semana sin actividad. La acción de GitHub `Mantener Supabase activo` (`.github/workflows/supabase-keep-alive.yml`) le escribe a la base una vez por día para evitarlo.
@@ -115,7 +104,8 @@ Supabase pausa los proyectos gratis después de una semana sin actividad. La acc
 
 ```
 src/config.ts            nombres, niveles, preguntas frecuentes, link de Telegram
-src/lib/data/seed.ts     contenido de ejemplo (y fuente de supabase/seed.sql)
+src/lib/data/curso-trs.ts  escenas y piezas de The Reel Studio
+src/lib/data/seed.ts     contenido de la demo (y fuente de supabase/seed.sql)
 src/lib/data/            conexión con Supabase y modo demo
 src/pages/               pantallas de alumna
 src/pages/admin/         panel de admin
@@ -123,4 +113,4 @@ supabase/migrations/     tablas y permisos (cada alumna ve solo lo que compró)
 supabase/functions/      video-token (link firmado de Bunny) y compra (accesos automáticos)
 ```
 
-Si cambiás el contenido de ejemplo en `seed.ts`, regenerá el SQL con `npm run seed:sql`.
+Si cambiás `curso-trs.ts` o `seed.ts`, regenerá el SQL con `npm run seed:sql`. Para pasar el curso a un proyecto que ya tiene datos, se corre `supabase/curso-trs.sql` (reemplaza las escenas de The Reel Studio y borra el progreso de esas clases).

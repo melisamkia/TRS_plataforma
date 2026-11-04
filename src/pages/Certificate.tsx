@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { formatDate } from '../components/bits'
 import { PLATFORM_BY, PLATFORM_NAME } from '../config'
 import { api } from '../lib/data'
+import { isSatisfied } from '../lib/levels'
 import { useStore } from '../lib/store'
 import type { CertificateCheck } from '../lib/types'
 import { NotFound } from './NotFound'
@@ -75,7 +76,8 @@ export function Certificate() {
   if (!product || !owned.some((p) => p.id === product.id)) return <NotFound />
 
   const { lessons } = productContent(product.id)
-  const pending = lessons.filter((l) => !completed.has(l.id))
+  // Pendientes sin contar dos veces las alternativas (si hizo Mac, Windows no falta)
+  const pending = lessons.filter((l, i) => !isSatisfied(l, lessons, completed) && !lessons.slice(0, i).some((x) => x.alt_group && x.alt_group === l.alt_group && x.module_id === l.module_id))
   const complete = lessons.length > 0 && pending.length === 0
   const ent = entitlements.find((e) => e.product_id === product.id)
   const memberLabel = product.gamified && ent?.member_number

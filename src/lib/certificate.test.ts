@@ -27,3 +27,18 @@ describe('certificado (modo demo)', () => {
     expect(await api.verifyCertificate('NOEXISTE')).toBeNull()
   })
 })
+
+describe('certificado con clases alternativas', () => {
+  it('alcanza con hacer una de las alternativas (Mac o Windows)', async () => {
+    const api = createDemoApi()
+    await api.resetDemo()
+    const { modules, lessons } = await api.listContent()
+    const ids = new Set(modules.filter((m) => m.product_id === 'p-trs').map((m) => m.id))
+    const trs = lessons.filter((l) => ids.has(l.module_id))
+    const alts = trs.filter((l) => l.alt_group)
+    expect(alts.length).toBeGreaterThan(1)
+    const skipped = alts[alts.length - 1]
+    for (const l of trs) if (l.id !== skipped.id) await api.setLessonDone(l.id, true)
+    expect((await api.issueCertificate('p-trs', 'Ana Pérez')).full_name).toBe('Ana Pérez')
+  })
+})

@@ -1,30 +1,62 @@
 import { describe, expect, it } from 'vitest'
 import { expandBundles } from './data/api'
 import { createSeed } from './data/seed'
-import { levelIndex, parseEmails, summarize } from './levels'
+import { isSatisfied, levelIndex, parseEmails, summarize } from './levels'
 
 const db = createSeed()
 const trs = {
   modules: db.modules.filter((m) => m.product_id === 'p-trs'),
   lessons: db.lessons.filter((l) => l.module_id.startsWith('trs-')),
 }
-const install = trs.lessons.filter((l) => l.module_id === 'trs-m2').map((l) => l.id)
+const install = trs.lessons.filter((l) => l.module_id === 'trs-m2')
+const byTitle = (t: string) => install.find((l) => l.title === t)!.id
+const guia = byTitle('Lo que necesitas antes de empezar')
+const claude = byTitle('Instala Claude')
+const mac = byTitle('Instala tu studio en Mac')
+const windows = byTitle('Instala tu studio en Windows')
 
 describe('niveles', () => {
   it('arranca en Aprendiz', () => {
     expect(levelIndex(summarize(trs, new Set()), 0)).toBe(0)
   })
-  it('sube a Creadora al terminar la escena de Instalación', () => {
-    const s = summarize(trs, new Set(install.slice(0, 2)))
-    expect(s.milestoneDone).toBe(false)
-    expect(levelIndex(summarize(trs, new Set(install)), 0)).toBe(1)
+  it('sube a Creadora con la ruta rápida de Instalación, haciendo solo Mac', () => {
+    expect(levelIndex(summarize(trs, new Set([guia, claude, mac])), 0)).toBe(1)
+  })
+  it('también sube haciendo solo Windows', () => {
+    expect(levelIndex(summarize(trs, new Set([guia, claude, windows])), 0)).toBe(1)
+  })
+  it('no sube si falta una pieza de la ruta rápida', () => {
+    expect(summarize(trs, new Set([guia, mac])).milestoneDone).toBe(false)
+  })
+  it('lo que no es ruta rápida no frena el nivel', () => {
+    const extra = install.find((l) => l.title === 'Si algo no se instala')!
+    expect(extra.essential).toBe(false)
+    expect(summarize(trs, new Set([guia, claude, mac])).milestoneDone).toBe(true)
   })
   it('Directora con el primer reel y Estrella con 4', () => {
     expect(levelIndex(summarize(trs, new Set()), 1)).toBe(2)
     expect(levelIndex(summarize(trs, new Set()), 4)).toBe(3)
   })
-  it('cuenta clases terminadas', () => {
-    expect(summarize(trs, new Set(['trs-m1-l1', 'otra'])).done).toBe(1)
+})
+
+describe('progreso', () => {
+  it('Mac y Windows cuentan como una sola pieza', () => {
+    const s = summarize(trs, new Set([mac]))
+    expect(s.total).toBe(trs.lessons.length - 1)
+    expect(s.done).toBe(1)
+  })
+  it('si hizo Mac, Windows no le falta', () => {
+    const w = install.find((l) => l.id === windows)!
+    expect(isSatisfied(w, trs.lessons, new Set([mac]))).toBe(true)
+    expect(isSatisfied(w, trs.lessons, new Set([claude]))).toBe(false)
+  })
+})
+
+describe('el curso cargado', () => {
+  it('tiene 12 escenas, 22 videos y 17 guías', () => {
+    expect(trs.modules.length).toBe(12)
+    expect(trs.lessons.filter((l) => l.kind === 'video').length).toBe(22)
+    expect(trs.lessons.filter((l) => l.kind === 'guia').length).toBe(17)
   })
 })
 

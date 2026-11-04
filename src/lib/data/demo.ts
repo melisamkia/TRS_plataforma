@@ -2,8 +2,9 @@
 import type { DataApi } from './api'
 import { expandBundles, newId } from './api'
 import { createSeed, type DemoDb } from './seed'
+import { isComplete } from '../levels'
 
-const KEY = 'elset-demo-v2'
+const KEY = 'elset-demo-v3'
 const SESSION_KEY = 'elset-demo-session'
 
 function load(): DemoDb {
@@ -116,7 +117,7 @@ export function createDemoApi(): DataApi {
       const moduleIds = new Set(db.modules.filter((m) => m.product_id === productId).map((m) => m.id))
       const lessons = db.lessons.filter((l) => moduleIds.has(l.module_id))
       const done = new Set(db.progress)
-      if (lessons.length === 0 || lessons.some((l) => !done.has(l.id))) throw new Error('Te faltan clases por terminar para recibir el certificado.')
+      if (!isComplete(lessons, done)) throw new Error('Te faltan clases por terminar para recibir el certificado.')
       const prev = db.certificates.find((c) => c.product_id === productId)
       const cert = prev
         ? { ...prev, full_name: name }
