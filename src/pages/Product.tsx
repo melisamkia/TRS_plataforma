@@ -13,7 +13,24 @@ export function Product() {
   const product = products.find((p) => p.slug === slug)
   if (!product) return <NotFound />
   const isOwned = owned.some((p) => p.id === product.id)
+  if (isOwned && product.access_url) return <ExternalProduct product={product} />
   return isOwned ? <OwnedProduct product={product} /> : <LockedProduct product={product} />
+}
+
+/** Producto comprado cuyo contenido vive en otra plataforma. */
+function ExternalProduct({ product }: { product: P }) {
+  return (
+    <section className="band">
+      <div className="wrap" style={{ display: 'grid', gap: 16, justifyItems: 'start' }}>
+        <span className="kind">{kindLabel(product)} · {product.brand}</span>
+        <h1>{product.title}</h1>
+        <p>{product.tagline}</p>
+        <a className="btn lime" href={product.access_url!} target="_blank" rel="noopener">
+          Entrar a {product.title} ↗
+        </a>
+      </div>
+    </section>
+  )
 }
 
 function OwnedProduct({ product }: { product: P }) {

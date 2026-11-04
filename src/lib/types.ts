@@ -16,6 +16,8 @@ export interface Product {
   brand: string
   price_label: string | null
   checkout_url: string | null
+  /** Si el contenido vive en otra plataforma: al hacer clic en la tarjeta se abre este link. */
+  access_url: string | null
   poster_style: PosterStyle
   /** Si aparece en la Cartelera para quien no lo tiene. */
   listed: boolean

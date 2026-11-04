@@ -87,8 +87,8 @@ export function Ticket({
 }) {
   const pct = total ? Math.round((done / total) * 100) : 0
   const style = product.poster_style === 'ink' ? 'ink' : product.poster_style === 'lime' ? 'lime' : ''
-  return (
-    <Link to={`/p/${product.slug}`} className={`ticket ${style}`}>
+  const inner = (
+    <>
       <div className="main">
         <span className="kind">
           {kindLabel(product)} · {product.brand}
@@ -109,8 +109,21 @@ export function Ticket({
       <div className="stub">
         <small>ENTRADA</small>
         <b>Nº {String(ent?.member_number ?? 0).padStart(3, '0')}</b>
-        <span className="go">{done === 0 ? 'Empezar' : 'Entrar'}</span>
+        <span className="go">{product.access_url ? 'Entrar ↗' : done === 0 ? 'Empezar' : 'Entrar'}</span>
       </div>
+    </>
+  )
+  // Contenido en otra plataforma: la tarjeta abre ese link en una pestaña nueva.
+  if (product.access_url) {
+    return (
+      <a href={product.access_url} target="_blank" rel="noopener" className={`ticket ${style}`}>
+        {inner}
+      </a>
+    )
+  }
+  return (
+    <Link to={`/p/${product.slug}`} className={`ticket ${style}`}>
+      {inner}
     </Link>
   )
 }

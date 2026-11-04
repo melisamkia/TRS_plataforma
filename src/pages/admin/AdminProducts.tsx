@@ -25,6 +25,7 @@ function blank(sort: number): Product {
     brand: 'Meli & Clari',
     price_label: null,
     checkout_url: null,
+    access_url: null,
     poster_style: 'ink',
     listed: true,
     coming_soon: false,
@@ -101,7 +102,7 @@ function ProductEditor({
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    onSave({ ...p, slug: p.slug || slugify(p.title), price_label: p.price_label || null, checkout_url: p.checkout_url || null })
+    onSave({ ...p, slug: p.slug || slugify(p.title), price_label: p.price_label || null, checkout_url: p.checkout_url || null, access_url: p.access_url?.trim() || null })
   }
 
   return (
@@ -150,6 +151,11 @@ function ProductEditor({
         <label className="field">
           <span>Link de compra (Beacons)</span>
           <input id="pe-checkout" type="url" value={p.checkout_url ?? ''} placeholder="https://shop.beacons.ai/..." onChange={(e) => set('checkout_url', e.target.value)} />
+        </label>
+        <label className="field">
+          <span>Link de acceso externo (opcional)</span>
+          <input id="pe-access" type="url" value={p.access_url ?? ''} placeholder="https://..." onChange={(e) => set('access_url', e.target.value)} />
+          <small>Si el contenido está en otra plataforma, al tocar la tarjeta en Tus accesos se abre este link.</small>
         </label>
         <label className="field">
           <span>Color del afiche</span>
