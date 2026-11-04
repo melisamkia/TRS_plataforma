@@ -21,9 +21,9 @@ const out: string[] = [
 
 for (const p of db.products) {
   out.push(
-    `insert into public.products (id, slug, title, tagline, description, kind, brand, price_label, checkout_url, poster_style, listed, coming_soon, gamified, includes, sort) values (` +
+    `insert into public.products (id, slug, title, tagline, description, kind, brand, price_label, checkout_url, access_url, poster_style, listed, coming_soon, gamified, includes, sort) values (` +
       [
-        q(uuid(p.id)), q(p.slug), q(p.title), q(p.tagline), q(p.description), q(p.kind), q(p.brand), q(p.price_label), q(p.checkout_url),
+        q(uuid(p.id)), q(p.slug), q(p.title), q(p.tagline), q(p.description), q(p.kind), q(p.brand), q(p.price_label), q(p.checkout_url), q(p.access_url),
         q(p.poster_style), b(p.listed), b(p.coming_soon), b(p.gamified), `'{${p.includes.map(uuid).join(',')}}'::uuid[]`, String(p.sort),
       ].join(', ') +
       ');',
