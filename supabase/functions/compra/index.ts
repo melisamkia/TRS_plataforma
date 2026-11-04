@@ -105,9 +105,11 @@ Deno.serve(async (req) => {
   })
 
   const payload = await readPayload(req)
-  const slug = (url.searchParams.get('producto') ?? '').trim().toLowerCase()
-  const founder = ['1', 'si', 'sí', 'true'].includes((url.searchParams.get('fundadora') ?? '').toLowerCase())
-  const source = url.searchParams.get('origen') ?? req.headers.get('user-agent')?.slice(0, 80) ?? null
+  // El producto y "fundadora" vienen en la dirección (?producto=) o dentro del aviso (lector de Gmail de Beacons)
+  const body = payload && typeof payload === 'object' ? (payload as Record<string, unknown>) : {}
+  const slug = String(url.searchParams.get('producto') ?? body.producto ?? '').trim().toLowerCase()
+  const founder = ['1', 'si', 'sí', 'true'].includes(String(url.searchParams.get('fundadora') ?? body.fundadora ?? '').toLowerCase())
+  const source = url.searchParams.get('origen') ?? (typeof body.origen === 'string' ? body.origen : null) ?? req.headers.get('user-agent')?.slice(0, 80) ?? null
 
   const log = (row: Record<string, unknown>) => sb.from('purchases').insert({ payload, source, ...row })
 

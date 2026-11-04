@@ -45,8 +45,9 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
 4. Authentication → Email Templates: traducir el mail del enlace mágico al español.
-5. **Solo entran las que compraron**: Authentication → Hooks → "Before User Created" → tipo Postgres → función `public.hook_solo_compradoras`. Desde ahí, un mail sin compra cargada no puede crear cuenta (las cuentas que ya existen, como las de admin, siguen entrando).
-6. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
+5. **Mails de entrada**: el servicio de mails que trae Supabase manda muy pocos por hora (es para pruebas). Como cada entrada pide un link nuevo, conectar un servicio propio en Authentication → Emails → SMTP Settings (por ejemplo Brevo o Resend, que tienen plan gratis) y ahí mismo poner el remitente "The Reel Studio".
+6. **Solo entran las que compraron**: Authentication → Hooks → "Before User Created" → tipo Postgres → función `public.hook_solo_compradoras`. Desde ahí, un mail sin compra cargada no puede crear cuenta (las cuentas que ya existen, como las de admin, siguen entrando).
+7. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
    ```sql
    update public.profiles set is_admin = true where email in ('mail-de-meli', 'mail-de-clari');
    ```
@@ -80,10 +81,8 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
    https://<proyecto>.supabase.co/functions/v1/compra?clave=<COMPRA_CLAVE>&producto=the-reel-studio
    ```
    Para la preventa sumar `&fundadora=1`. El mail de la compradora lo encuentra solo en lo que llegue.
-4. Conectar quién avisa (Beacons cobra con Stripe y PayPal; Beacons no manda avisos propios):
-   - **Stripe**: Stripe → Developers → Webhooks → Add endpoint → pegar la dirección → eventos `checkout.session.completed` y `charge.succeeded`.
-   - **PayPal**: PayPal → Configuración de la cuenta → Notificaciones → Notificaciones instantáneas de pago (IPN) → pegar la dirección y activarlas.
-   - Los reembolsos y pagos pendientes se ignoran solos. Ojo: avisan todas las ventas de esa cuenta, así que sirve mientras se venda un solo producto ahí.
+4. Conectar quién avisa. Beacons no tiene aviso de ventas propio, pero manda un mail por cada venta ("You just made a sale"). El **lector de Gmail** (`scripts/beacons-gmail.js`) lee esos mails cada 5 minutos y avisa a la función: saca el mail de la compradora, el producto y si es preventa (Fundadora). Es gratis y corre en la cuenta de Google que recibe las ventas (la de Clari). Los pasos para instalarlo están al principio del archivo. Para sumar un producto, agregar una línea en `PRODUCTOS`.
+   - Alternativa, si algún día hace falta: Stripe (Developers → Webhooks, eventos `checkout.session.completed` y `charge.succeeded`) o PayPal (IPN). La misma dirección con `&producto=`.
 5. Probarla: hacer una compra de prueba (o mandar el POST desde Zapier) y mirar "Compras automáticas" en el admin.
 
 ### 5. Que no se pause (plan gratis)

@@ -1,8 +1,9 @@
 -- Certificados al terminar un producto, registro de compras automáticas y "solo entran las que compraron".
+-- Se puede correr más de una vez: lo que ya existe no se toca y lo demás se completa.
 
 -- ---------- Certificados ----------
 
-create table public.certificates (
+create table if not exists public.certificates (
   id uuid primary key default gen_random_uuid(),
   -- Código corto para verificar el certificado (va impreso y en el link de verificación).
   code text not null unique default upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10)),
@@ -15,6 +16,7 @@ create table public.certificates (
 
 alter table public.certificates enable row level security;
 -- Cada una ve los suyos; admin ve todos. Nadie inserta directo: solo con issue_certificate().
+drop policy if exists "mis certificados" on public.certificates;
 create policy "mis certificados" on public.certificates for select to authenticated
   using (user_id = auth.uid() or public.is_admin());
 
@@ -70,20 +72,24 @@ grant execute on function public.verify_certificate(text) to anon, authenticated
 -- ---------- Compras que llegan solas (función "compra") ----------
 
 -- Cada aviso de venta que llega, tal cual, para revisar si algo no cuadra.
-create table public.purchases (
+create table if not exists public.purchases (
   id uuid primary key default gen_random_uuid(),
   email text,
   product_id uuid references public.products (id) on delete set null,
-  status text not null check (status in ('ok', 'ignorado', 'sin_mail', 'sin_producto', 'error')),
+  status text not null,
   detail text,
   source text,
   payload jsonb,
   created_at timestamptz not null default now()
 );
-create index purchases_created_idx on public.purchases (created_at desc);
+create index if not exists purchases_created_idx on public.purchases (created_at desc);
+alter table public.purchases drop constraint if exists purchases_status_check;
+alter table public.purchases add constraint purchases_status_check
+  check (status in ('ok', 'ignorado', 'sin_mail', 'sin_producto', 'error'));
 
 alter table public.purchases enable row level security;
 -- Solo admin las lee. Las escribe la función "compra" con la clave de servicio (que ignora RLS).
+drop policy if exists "admin compras" on public.purchases;
 create policy "admin compras" on public.purchases for select to authenticated using (public.is_admin());
 
 -- ---------- Solo pueden crear cuenta las que compraron ----------
