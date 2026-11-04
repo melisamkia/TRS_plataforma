@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { pad2 } from '../../components/bits'
 import { api } from '../../lib/data'
 import { newId } from '../../lib/data/api'
@@ -247,17 +247,19 @@ function textToResources(t: string): Resource[] {
 }
 
 function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: (l: Lesson) => void; onCancel: () => void }) {
+  const run = useAdminAction()
   const [l, setL] = useState(initial)
   const [res, setRes] = useState(resourcesToText(initial.resources))
+  const clean = (x: Lesson): Lesson => ({
+    ...x,
+    video_id: x.kind === 'video' ? x.video_id?.trim() || null : null,
+    duration: x.duration?.trim() || null,
+    alt_group: x.alt_group?.trim() || null,
+    resources: textToResources(res),
+  })
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    onSave({
-      ...l,
-      video_id: l.kind === 'video' ? l.video_id?.trim() || null : null,
-      duration: l.duration?.trim() || null,
-      alt_group: l.alt_group?.trim() || null,
-      resources: textToResources(res),
-    })
+    onSave(clean(l))
   }
   const isGuide = l.kind === 'guia'
   return (
@@ -287,8 +289,19 @@ function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: 
           <label className="field full">
             <span>ID del video en Bunny Stream</span>
             <input id="le-video" value={l.video_id ?? ''} placeholder="ej: 3f2a9c1e-..." onChange={(e) => setL({ ...l, video_id: e.target.value })} />
-            <small>En Bunny: Stream → tu biblioteca → el video → copia el "Video ID".</small>
+            <small>Se completa solo al subir el video acá abajo. Si lo subiste en Bunny, pega su "Video ID".</small>
           </label>
+        )}
+        {!isGuide && (
+          <VideoUpload
+            title={l.title}
+            hasVideo={!!l.video_id?.trim()}
+            onUploaded={async (videoId) => {
+              const next = { ...l, video_id: videoId }
+              setL(next)
+              await run(() => api.saveLesson(clean(next)), 'Video subido y clase guardada. Bunny lo procesa en unos minutos.')
+            }}
+          />
         )}
         <label className="field full">
           <span>{isGuide ? 'Texto de la guía' : 'Resumen o mini guía (va abajo del video)'}</span>
@@ -324,5 +337,63 @@ function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: 
         </button>
       </div>
     </form>
+  )
+}
+
+/** Botón para subir el video directo a Bunny Stream. Al terminar guarda la clase con el ID nuevo. */
+function VideoUpload({ title, hasVideo, onUploaded }: { title: string; hasVideo: boolean; onUploaded: (videoId: string) => Promise<void> }) {
+  const [progress, setProgress] = useState<number | null>(null)
+  const [err, setErr] = useState<string | null>(null)
+  const uploading = progress !== null
+
+  // Avisa si se intenta cerrar la pestaña en plena subida.
+  useEffect(() => {
+    if (!uploading) return
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [uploading])
+
+  const pick = async (file: File | undefined) => {
+    if (!file) return
+    setErr(null)
+    if (!title.trim()) {
+      setErr('Escribe primero el título de la clase.')
+      return
+    }
+    setProgress(0)
+    try {
+      const id = await api.uploadVideo(file, title.trim(), setProgress)
+      await onUploaded(id)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'No se pudo subir el video.')
+    } finally {
+      setProgress(null)
+    }
+  }
+
+  return (
+    <div className="field full">
+      <span>{hasVideo ? 'Reemplazar el video' : 'Subir el video'}</span>
+      {uploading ? (
+        <>
+          <div className="bar-prog" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
+            <i style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+          <small>Subiendo… {Math.round(progress * 100)}%. No cierres esta pestaña hasta que termine.</small>
+        </>
+      ) : (
+        <>
+          <input id="le-upload" type="file" accept="video/*" onChange={(e) => { pick(e.target.files?.[0]); e.target.value = '' }} />
+          <small>
+            {err ?? 'Elige el archivo (MP4 o MOV). Va directo a Bunny y la clase se guarda sola al terminar.'}
+            {hasVideo && !err ? ' El video anterior queda en Bunny: si ya no lo usas, bórralo desde allá.' : ''}
+          </small>
+        </>
+      )}
+    </div>
   )
 }

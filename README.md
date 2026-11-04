@@ -58,11 +58,14 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 
 ### 2. Bunny Stream (videos)
 
-1. Crear una biblioteca en Bunny Stream y subir los videos.
-2. En la biblioteca → Security: activar **Embed view token authentication** y poner el dominio de la plataforma en los dominios permitidos. Así los videos no se pueden ver fuera de El Set.
-3. En Supabase → Edge Functions → Secrets, cargar `BUNNY_LIBRARY_ID` y `BUNNY_TOKEN_KEY`.
-4. Publicar la función: `supabase functions deploy video-token`.
-5. En Admin → Escenas y clases, pegar el "Video ID" de cada clase.
+1. Crear una biblioteca en Bunny Stream (la actual es la `799526`, "The Reel Studio").
+2. En la biblioteca → Security: activar **Embed view token authentication** y poner `thereelstudioapp.netlify.app` en los dominios permitidos. Así los videos no se pueden ver fuera de El Set.
+3. En Supabase → Edge Functions → Secrets, cargar:
+   - `BUNNY_LIBRARY_ID`: el número de la biblioteca.
+   - `BUNNY_TOKEN_KEY`: la "Token authentication key" (Security).
+   - `BUNNY_API_KEY`: la "API Key" de la biblioteca (pestaña API). Sirve para subir videos desde el Admin.
+4. Publicar las dos funciones (`supabase functions deploy video-token` y `supabase functions deploy video-upload`, o desde el panel: Edge Functions → Deploy a new function → Via Editor, con el mismo nombre y el código de `supabase/functions/<nombre>/index.ts`).
+5. Cargar los videos: Admin → Escenas y clases → Editar la clase → **Subir el video**. Va directo a Bunny y la clase se guarda sola con el ID. Bunny tarda unos minutos en procesarlo. También se puede subir en Bunny y pegar el "Video ID" a mano.
 
 ### 3. Netlify (la página)
 
@@ -113,7 +116,7 @@ src/lib/data/            conexión con Supabase y modo demo
 src/pages/               pantallas de alumna
 src/pages/admin/         panel de admin
 supabase/migrations/     tablas y permisos (cada alumna ve solo lo que compró)
-supabase/functions/      video-token (link firmado de Bunny) y compra (accesos automáticos)
+supabase/functions/      video-token (link firmado de Bunny), video-upload (subir videos desde el Admin) y compra (accesos automáticos)
 ```
 
 Si cambiás `curso-trs.ts` o `seed.ts`, regenerá el SQL con `npm run seed:sql`. Para pasar el curso a un proyecto que ya tiene datos, se corre `supabase/curso-trs.sql` (reemplaza las escenas de The Reel Studio y borra el progreso de esas clases).

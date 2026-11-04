@@ -108,6 +108,9 @@ export function createDemoApi(): DataApi {
     async getVideoUrl() {
       return null
     },
+    async uploadVideo() {
+      throw new Error('En el modo demo no se pueden subir videos. Funciona con Supabase y Bunny conectados.')
+    },
     async listCertificates() {
       return db.certificates
     },
