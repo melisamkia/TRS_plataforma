@@ -99,3 +99,29 @@ export interface Content {
   modules: Module[]
   lessons: Lesson[]
 }
+
+export interface Certificate {
+  id: string
+  /** Código corto para verificar el certificado. */
+  code: string
+  product_id: string
+  full_name: string
+  issued_at: string
+}
+
+/** Lo que muestra la verificación pública de un certificado. */
+export interface CertificateCheck {
+  full_name: string
+  product_title: string
+  issued_at: string
+}
+
+/** Aviso de venta recibido por la función "compra" (Zapier, Make, Stripe…). */
+export interface Purchase {
+  id: string
+  email: string | null
+  product_id: string | null
+  status: 'ok' | 'ignorado' | 'sin_mail' | 'sin_producto' | 'error'
+  detail: string | null
+  created_at: string
+}

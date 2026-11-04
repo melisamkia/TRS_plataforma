@@ -6,6 +6,7 @@ import { AdminContent } from './pages/admin/AdminContent'
 import { AdminMembers } from './pages/admin/AdminMembers'
 import { AdminProducts } from './pages/admin/AdminProducts'
 import { AdminUpdates } from './pages/admin/AdminUpdates'
+import { Certificate, VerifyCertificate } from './pages/Certificate'
 import { Help } from './pages/Help'
 import { Home } from './pages/Home'
 import { Lesson } from './pages/Lesson'
@@ -53,23 +54,32 @@ export function App() {
     <StoreProvider>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollTop />
-        <Gate>
-          <Routes>
-            <Route element={<Layout />}>
-              <Route index element={<Home />} />
-              <Route path="p/:slug" element={<Product />} />
-              <Route path="clase/:id" element={<Lesson />} />
-              <Route path="novedades" element={<Updates />} />
-              <Route path="ayuda" element={<Help />} />
-              <Route path="admin" element={<AdminOnly><AdminProducts /></AdminOnly>} />
-              <Route path="admin/contenido" element={<AdminOnly><AdminContent /></AdminOnly>} />
-              <Route path="admin/novedades" element={<AdminOnly><AdminUpdates /></AdminOnly>} />
-              <Route path="admin/alumnas" element={<AdminOnly><AdminMembers /></AdminOnly>} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </Gate>
+        <Routes>
+          {/* Pública: verificar un certificado no requiere entrar */}
+          <Route path="verificar/:code" element={<VerifyCertificate />} />
+          <Route path="*" element={<Gate><MemberRoutes /></Gate>} />
+        </Routes>
       </Router>
     </StoreProvider>
+  )
+}
+
+function MemberRoutes() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<Home />} />
+        <Route path="p/:slug" element={<Product />} />
+        <Route path="clase/:id" element={<Lesson />} />
+        <Route path="certificado/:slug" element={<Certificate />} />
+        <Route path="novedades" element={<Updates />} />
+        <Route path="ayuda" element={<Help />} />
+        <Route path="admin" element={<AdminOnly><AdminProducts /></AdminOnly>} />
+        <Route path="admin/contenido" element={<AdminOnly><AdminContent /></AdminOnly>} />
+        <Route path="admin/novedades" element={<AdminOnly><AdminUpdates /></AdminOnly>} />
+        <Route path="admin/alumnas" element={<AdminOnly><AdminMembers /></AdminOnly>} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   )
 }

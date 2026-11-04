@@ -4,7 +4,7 @@ import { api } from '../../lib/data'
 import { expandBundles } from '../../lib/data/api'
 import { parseEmails } from '../../lib/levels'
 import { useStore } from '../../lib/store'
-import type { Entitlement } from '../../lib/types'
+import type { Entitlement, Purchase } from '../../lib/types'
 import { AdminShell, DeleteButton } from './shared'
 
 export function AdminMembers() {
@@ -17,7 +17,12 @@ export function AdminMembers() {
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const load = async () => setAll(await api.listAllEntitlements())
+  const [purchases, setPurchases] = useState<Purchase[]>([])
+  const load = async () => {
+    const [ents, buys] = await Promise.all([api.listAllEntitlements(), api.listPurchases().catch(() => [] as Purchase[])])
+    setAll(ents)
+    setPurchases(buys)
+  }
   useEffect(() => {
     load().catch((e: Error) => showToast(e.message))
   }, [])
@@ -152,6 +157,41 @@ export function AdminMembers() {
           </tbody>
         </table>
       </div>
+
+      <div className="sec-head" style={{ marginTop: 40 }}>
+        <h2>
+          Compras <b>automáticas</b>
+        </h2>
+      </div>
+      {purchases.length === 0 ? (
+        <p className="muted">
+          Todavía no llegó ningún aviso de venta. Cuando conecten Zapier, Make o Stripe a la función "compra", cada venta aparece acá y la
+          alumna recibe el acceso sola.
+        </p>
+      ) : (
+        <div className="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Cuándo</th>
+                <th>Mail</th>
+                <th>Producto</th>
+                <th>Resultado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchases.map((b) => (
+                <tr key={b.id}>
+                  <td>{formatDate(b.created_at)}</td>
+                  <td>{b.email ?? '—'}</td>
+                  <td>{b.product_id ? title(b.product_id) : '—'}</td>
+                  <td>{b.status === 'ok' ? 'Acceso dado' : b.detail ?? b.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </AdminShell>
   )
 }

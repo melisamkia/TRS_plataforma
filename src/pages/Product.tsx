@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Credential, FilmStrip, LevelLadder, Poster, kindLabel, pad2 } from '../components/bits'
 import { HOURS_PER_REEL } from '../config'
-import { isSatisfied, levelHint, levelName, slots, summarize } from '../lib/levels'
+import { isComplete, isSatisfied, levelHint, levelName, slots, summarize } from '../lib/levels'
 import { useStore } from '../lib/store'
 import type { Lesson, Module, Product as P } from '../lib/types'
 import { NotFound } from './NotFound'
@@ -17,7 +17,7 @@ export function Product() {
 }
 
 function OwnedProduct({ product }: { product: P }) {
-  const { productContent, completed, entitlements, level, reels, addReel } = useStore()
+  const { productContent, completed, entitlements, level, reels, addReel, certificates } = useStore()
   const { modules, lessons } = productContent(product.id)
   const ent = entitlements.find((e) => e.product_id === product.id)
   const lv = level(product.id)
@@ -42,6 +42,8 @@ function OwnedProduct({ product }: { product: P }) {
     setQuick(v)
     saveQuick(product.id, v)
   }
+  const finished = isComplete(lessons, completed)
+  const hasCert = certificates.some((c) => c.product_id === product.id)
 
   const onReel = async (e: FormEvent) => {
     e.preventDefault()
@@ -78,6 +80,18 @@ function OwnedProduct({ product }: { product: P }) {
                   {done === 0 ? 'Empezar' : 'Seguir donde quedé'}
                 </Link>
               </div>
+            )}
+            {finished && (
+              <div style={{ marginTop: 22 }}>
+                <Link className="btn lime" to={`/certificado/${product.slug}`}>
+                  {hasCert ? 'Ver mi certificado' : 'Recibir mi certificado'}
+                </Link>
+              </div>
+            )}
+            {lessons.length > 0 && !finished && (
+              <p className="strip-label" style={{ marginTop: 12 }}>
+                Al terminar las {lessons.length} clases recibes tu certificado.
+              </p>
             )}
           </div>
           {product.gamified && ent && <Credential product={product} ent={ent} />}

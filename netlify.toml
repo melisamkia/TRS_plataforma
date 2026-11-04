@@ -2,6 +2,18 @@
   command = "npm run build"
   publish = "dist"
 
+# La app pregunta por este archivo para saber si hay versión nueva: nunca guardarlo en caché.
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# La página principal tampoco, así cada recarga trae la última versión.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
 # Todas las rutas las resuelve la app (React Router)
 [[redirects]]
   from = "/*"

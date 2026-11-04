@@ -377,6 +377,52 @@ footer.foot { border-top: 1.5px solid var(--line); font-family: var(--f-type); f
 footer.foot .wrap { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding-block: 20px; }
 .loading { padding: 80px 16px; text-align: center; font-family: var(--f-type); color: var(--muted); }
 
+/* Certificado */
+.cert-page { display: grid; gap: 18px; justify-items: start; }
+.cert-form { display: grid; gap: 12px; }
+.row-actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.cert-actions { display: flex; gap: 12px 16px; align-items: center; flex-wrap: wrap; }
+.cert-sheet {
+  width: 100%; max-width: 980px; aspect-ratio: 1.414 / 1; background: var(--stage); color: var(--stage-fg);
+  border: 1.5px solid var(--line); box-shadow: 10px 10px 0 var(--lime);
+  display: grid; grid-template-rows: auto 1fr auto; container-type: inline-size;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.cert-perf { height: 4.2cqi; background: #000; position: relative; }
+.cert-perf::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1.4cqi; transform: translateY(-50%); background: repeating-linear-gradient(90deg, var(--stage-fg) 0 1.6cqi, transparent 1.6cqi 3.4cqi); opacity: 0.85; }
+.cert-body {
+  padding: 4cqi 7cqi; display: grid; align-content: center; justify-items: center; text-align: center; gap: 1.2cqi; position: relative;
+  background: radial-gradient(60% 70% at 85% 15%, rgba(228, 103, 63, 0.2), transparent 70%), radial-gradient(45% 55% at 10% 95%, rgba(217, 249, 157, 0.1), transparent 70%);
+}
+.cert-brand { font-family: var(--f-type); font-size: 1.5cqi; letter-spacing: 0.22em; color: var(--lime); }
+.cert-title { font-family: var(--f-display); font-size: 9cqi; line-height: 1; text-transform: uppercase; letter-spacing: 0.04em; }
+.cert-of { font-family: var(--f-type); font-size: 1.6cqi; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stage-muted); margin-top: 1.2cqi; }
+.cert-name { font-family: var(--f-serif); font-style: italic; font-size: 6cqi; line-height: 1.1; border-bottom: 0.2cqi solid var(--orange); padding: 0 2cqi 0.8cqi; max-width: 100%; overflow-wrap: anywhere; }
+.cert-why { font-size: 1.9cqi; color: var(--stage-fg); max-width: 60ch; }
+.cert-why b { color: var(--lime); font-weight: 600; }
+.cert-member { font-family: var(--f-type); font-size: 1.6cqi; color: var(--stage-muted); white-space: nowrap; }
+.cert-foot { width: 100%; display: flex; justify-content: space-between; align-items: end; gap: 3cqi; margin-top: 3cqi; }
+.cert-sign { display: grid; grid-template-columns: auto auto; gap: 0 3cqi; text-align: left; }
+.cert-sign .sig { font-family: var(--f-serif); font-style: italic; font-size: 3cqi; border-bottom: 0.15cqi solid var(--stage-muted); padding: 0 1cqi 0.3cqi; }
+.cert-sign small { grid-column: 1 / -1; font-family: var(--f-type); font-size: 1.3cqi; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stage-muted); margin-top: 0.6cqi; }
+.cert-data { margin: 0; display: flex; gap: 3cqi; text-align: right; }
+.cert-data dt { font-family: var(--f-type); font-size: 1.2cqi; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stage-muted); }
+.cert-data dd { margin: 0; font-family: var(--f-type); font-size: 1.7cqi; font-weight: 700; }
+
+.verify { min-height: 100vh; background: var(--paper-2); padding-block: clamp(32px, 6vw, 64px); }
+.verify-ok { border: 1.5px solid var(--line); background: var(--lime); padding: 12px 16px; font-weight: 600; }
+
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  html, body { background: #fff; }
+  header.top, footer.foot, .demo-bar, .toast, .no-print { display: none !important; }
+  .section { padding: 0 !important; }
+  .wrap { max-width: none; padding: 0 !important; }
+  .cert-page { display: block; }
+  .cert-sheet { max-width: none; width: 297mm; height: 210mm; aspect-ratio: auto; box-shadow: none; border: 0; break-inside: avoid; }
+}
+.update-bar { background: var(--orange); color: #fff; }
+
 /* Ruta rápida y lista de piezas */
 .seg { display: flex; border: 1.5px solid var(--line); width: max-content; max-width: 100%; }
 .seg button { appearance: none; border: 0; background: var(--paper); color: var(--ink); font-family: var(--f-type); font-weight: 700; font-size: 0.76rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 10px 14px; cursor: pointer; }

@@ -30,6 +30,11 @@ export function isSatisfied(lesson: Lesson, lessons: Lesson[], completed: Set<st
   return lessons.some((x) => slotKey(x) === k && completed.has(x.id))
 }
 
+/** Terminó todo el producto (las alternativas cuentan como una): se desbloquea el certificado. */
+export function isComplete(lessons: Lesson[], completed: Set<string>): boolean {
+  return lessons.length > 0 && lessons.every((l) => isSatisfied(l, lessons, completed))
+}
+
 /** Progreso de un producto y si ya completó las escenas que suben de nivel. */
 export function summarize(content: Content, completed: Set<string>): ProgressSummary {
   const all = slots(content.lessons)

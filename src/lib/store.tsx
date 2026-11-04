@@ -1,11 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from './data'
-import { levelIndex, levelName, summarize } from './levels'
-import type { Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from './types'
+import { isComplete, levelIndex, levelName, summarize } from './levels'
+import type { Certificate, Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from './types'
 
 export interface Celebration {
   title: string
   body: string
+  /** Etiqueta chica arriba del título. */
+  kicker?: string
+  /** Botón principal opcional (ej: ir al certificado). */
+  action?: { label: string; to: string }
 }
 
 interface Store {
@@ -18,6 +22,7 @@ interface Store {
   completed: Set<string>
   reels: Reel[]
   updates: Update[]
+  certificates: Certificate[]
   toast: string | null
   celebration: Celebration | null
   owned: Product[]
@@ -27,6 +32,7 @@ interface Store {
   level(productId: string): number
   setLessonDone(lesson: Lesson, done: boolean): Promise<void>
   addReel(url: string | null, productId: string): Promise<void>
+  issueCertificate(productId: string, fullName: string): Promise<Certificate>
   refresh(): Promise<void>
   signOut(): Promise<void>
   showToast(msg: string): void
@@ -53,6 +59,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [completed, setCompleted] = useState<Set<string>>(new Set())
   const [reels, setReels] = useState<Reel[]>([])
   const [updates, setUpdates] = useState<Update[]>([])
+  const [certificates, setCertificates] = useState<Certificate[]>([])
   const [toast, setToast] = useState<string | null>(null)
   const [celebration, setCelebration] = useState<Celebration | null>(null)
 
@@ -65,13 +72,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setReady(true)
         return
       }
-      const [prods, ents, cont, prog, rs, ups] = await Promise.all([
+      const [prods, ents, cont, prog, rs, ups, certs] = await Promise.all([
         api.listProducts(),
         api.listMyEntitlements(p.email),
         api.listContent(),
         api.listProgress(),
         api.listReels(),
         api.listUpdates(),
+        api.listCertificates(),
       ])
       setProducts(prods)
       setEntitlements(ents)
@@ -79,6 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCompleted(new Set(prog))
       setReels(rs)
       setUpdates(ups)
+      setCertificates(certs)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Algo salió mal al cargar la plataforma.')
     } finally {
@@ -154,11 +163,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }
       if (done) {
         const after = product ? levelWith(product.id, next, reels.length) : 0
-        if (after > before) celebrateIfUp(product, before, after)
+        const lessons = product ? productContent(product.id).lessons : []
+        const wasComplete = isComplete(lessons, completed)
+        const nowComplete = isComplete(lessons, next)
+        if (product && nowComplete && !wasComplete) {
+          setCelebration({
+            kicker: 'Terminaste el programa',
+            title: '¡Corten! Es una toma.',
+            body: `Terminaste todas las clases de ${product.title}. Tu certificado te está esperando.`,
+            action: { label: 'Ver mi certificado', to: `/certificado/${product.slug}` },
+          })
+        } else if (after > before) celebrateIfUp(product, before, after)
         else showToast('Clase terminada. Quedó guardada en tu progreso.')
       }
     },
-    [completed, reels.length, productOf, levelWith, showToast],
+    [completed, reels.length, productOf, productContent, levelWith, showToast],
   )
 
   const addReel = useCallback(
@@ -178,6 +197,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [products, completed, reels.length, levelWith, showToast],
   )
 
+  const issueCertificate = useCallback(async (productId: string, fullName: string) => {
+    const cert = await api.issueCertificate(productId, fullName)
+    setCertificates((list) => [...list.filter((c) => c.product_id !== productId), cert])
+    setProfile((p) => (p ? { ...p, full_name: cert.full_name } : p))
+    return cert
+  }, [])
+
   const signOut = useCallback(async () => {
     await api.signOut()
     setProfile(null)
@@ -193,6 +219,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     completed,
     reels,
     updates,
+    certificates,
     toast,
     celebration,
     owned,
@@ -202,6 +229,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     level,
     setLessonDone,
     addReel,
+    issueCertificate,
     refresh,
     signOut,
     showToast,
