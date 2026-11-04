@@ -1,0 +1,16 @@
+<!-- Mail para entrar a la plataforma. Supabase → Authentication → Emails → Templates.
+     Pegar en "Magic link" y también en "Confirm signup" (el primer ingreso de cada alumna usa ese).
+     Asunto sugerido: Tu enlace para entrar a The Reel Studio -->
+<div style="background:#f6f3ef;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#141210">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1.5px solid #141210">
+    <div style="background:#141210;color:#d9f99d;padding:14px 24px;font-family:'Courier New',monospace;font-size:12px;letter-spacing:3px">
+      THE REEL STUDIO
+    </div>
+    <div style="padding:28px 24px">
+      <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:30px;line-height:1.1;margin:0 0 14px">Tu enlace para entrar</h1>
+      <p style="font-size:16px;line-height:1.5;margin:0 0 24px">Toca el botón y entras directo a la plataforma. No necesitas contraseña.</p>
+      <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#e4673f;color:#ffffff;text-decoration:none;font-family:'Courier New',monospace;font-weight:bold;font-size:14px;letter-spacing:2px;padding:14px 22px">ENTRAR AL SET</a>
+      <p style="font-size:13px;line-height:1.5;color:#5e5953;margin:24px 0 0">El enlace sirve una sola vez y vence en una hora. Ábrelo desde el mismo dispositivo donde lo pediste.<br>Si no fuiste tú, ignora este mail: nadie puede entrar sin él.</p>
+    </div>
+  </div>
+</div>

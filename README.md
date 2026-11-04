@@ -44,8 +44,12 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 1. Crear un proyecto en Supabase.
 2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
-4. Authentication → Email Templates: traducir el mail del enlace mágico al español.
-5. **Mails de entrada**: el servicio de mails que trae Supabase manda muy pocos por hora (es para pruebas). Como cada entrada pide un link nuevo, conectar un servicio propio en Authentication → Emails → SMTP Settings (por ejemplo Brevo o Resend, que tienen plan gratis) y ahí mismo poner el remitente "The Reel Studio".
+4. Authentication → Emails → Templates: en **Magic link** y en **Confirm signup** pegar `supabase/templates/enlace.html` (asunto: "Tu enlace para entrar a The Reel Studio").
+5. **Mails de entrada con Brevo** (el servicio que trae Supabase manda muy pocos por hora y cada entrada pide un link):
+   - Brevo → Senders, Domains & Dedicated IPs: agregar y verificar el remitente (mejor con dominio propio, autenticado con los registros DNS que da Brevo).
+   - Brevo → SMTP & API → SMTP → Generate a new SMTP key.
+   - Supabase → Authentication → Emails → SMTP Settings → Enable custom SMTP: host `smtp-relay.brevo.com`, puerto `587`, usuario = el "Login" que muestra Brevo, contraseña = la SMTP key, nombre "The Reel Studio".
+   - Supabase → Authentication → Rate Limits: subir "emails por hora" (ej. 100).
 6. **Solo entran las que compraron**: Authentication → Hooks → "Before User Created" → tipo Postgres → función `public.hook_solo_compradoras`. Desde ahí, un mail sin compra cargada no puede crear cuenta (las cuentas que ya existen, como las de admin, siguen entrando).
 7. Entrar una vez a la plataforma con tu mail y después, en SQL Editor:
    ```sql
