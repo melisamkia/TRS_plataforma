@@ -3,7 +3,7 @@ import type { DataApi } from './api'
 import { expandBundles, newId } from './api'
 import { createSeed, type DemoDb } from './seed'
 
-const KEY = 'elset-demo-v2'
+const KEY = 'elset-demo-v3'
 const SESSION_KEY = 'elset-demo-session'
 
 function load(): DemoDb {
