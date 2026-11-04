@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api } from './data'
+import { expandBundles } from './data/api'
 import { isComplete, levelIndex, levelName, summarize } from './levels'
 import type { Certificate, Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from './types'
 
@@ -107,7 +108,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     window.setTimeout(() => setToast((t) => (t === msg ? null : t)), 3200)
   }, [])
 
-  const ownedIds = useMemo(() => new Set(entitlements.map((e) => e.product_id)), [entitlements])
+  // Lo que viene incluido (ej: B-Rolls con The Reel Studio) se ve aunque el acceso se haya cargado antes de sumarlo.
+  const ownedIds = useMemo(
+    () => new Set(expandBundles(entitlements.map((e) => e.product_id), products)),
+    [entitlements, products],
+  )
   const owned = useMemo(() => products.filter((p) => ownedIds.has(p.id)), [products, ownedIds])
   const catalog = useMemo(() => products.filter((p) => p.listed && !ownedIds.has(p.id)), [products, ownedIds])
 
