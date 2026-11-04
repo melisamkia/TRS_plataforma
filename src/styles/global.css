@@ -273,6 +273,8 @@ body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-a
 .video .wait b { font-family: var(--f-display); font-weight: 400; font-size: 1.6rem; color: var(--stage-fg); }
 .lesson-body { display: grid; gap: 16px; margin-top: 24px; }
 .lesson-body h1 { font-size: clamp(2rem, 4.6vw, 3rem); }
+/* Guía o resumen con diseño propio (HTML pegado en el Admin). */
+.html-block { display: block; width: 100%; border: 0; background: transparent; }
 .lesson-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .resources { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--line); }
 .resources a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--soft); text-decoration: none; }

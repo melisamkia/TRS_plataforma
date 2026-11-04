@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Clapper, pad2 } from '../components/bits'
 import { api } from '../lib/data'
 import { isSatisfied } from '../lib/levels'
-import { Markdown } from '../lib/markdown'
+import { LessonContent } from '../components/LessonContent'
 import { useStore } from '../lib/store'
 import type { Lesson as L } from '../lib/types'
 import { NotFound } from './NotFound'
@@ -65,7 +65,7 @@ export function Lesson() {
               <h1>{lesson.title}</h1>
               {lesson.description && <p className="lede">{lesson.description}</p>}
               {isGuide &&
-                (lesson.body.trim() ? <Markdown text={lesson.body} /> : <p className="empty-note">Estamos escribiendo esta guía.</p>)}
+                (lesson.body.trim() ? <LessonContent text={lesson.body} title={lesson.title} /> : <p className="empty-note">Estamos escribiendo esta guía.</p>)}
               <div className="lesson-actions">
                 {isDone ? (
                   <>
@@ -88,7 +88,7 @@ export function Lesson() {
               {!isGuide && lesson.body.trim() && (
                 <section className="summary" aria-label="Resumen de la clase">
                   <p className="eyebrow">Resumen de la clase</p>
-                  <Markdown text={lesson.body} />
+                  <LessonContent text={lesson.body} title={`Resumen: ${lesson.title}`} />
                 </section>
               )}
               {lesson.resources.length > 0 && (

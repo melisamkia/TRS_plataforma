@@ -296,6 +296,9 @@ function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: 
           <small>
             Formato: <code>## Título</code> · <code>- punto</code> · <code>1. paso</code> · <code>&gt; consejo</code> · <code>**negrita**</code> ·{' '}
             <code>[texto](link)</code> · <code>![descripción](link de la imagen)</code>
+            <br />
+            ¿Con diseño propio? Pega el código HTML completo (que empiece con <code>&lt;</code>, ej: <code>&lt;!doctype html&gt;</code> o{' '}
+            <code>&lt;div&gt;</code>) y se ve tal cual, con sus botones y estilos, en la misma página.
           </small>
         </label>
         <label className="check">
