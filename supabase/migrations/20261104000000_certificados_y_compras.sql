@@ -69,7 +69,7 @@ create table public.purchases (
   id uuid primary key default gen_random_uuid(),
   email text,
   product_id uuid references public.products (id) on delete set null,
-  status text not null check (status in ('ok', 'sin_mail', 'sin_producto', 'error')),
+  status text not null check (status in ('ok', 'ignorado', 'sin_mail', 'sin_producto', 'error')),
   detail text,
   source text,
   payload jsonb,
@@ -103,3 +103,7 @@ revoke all on function public.hook_solo_compradoras(jsonb) from public, anon, au
 grant execute on function public.hook_solo_compradoras(jsonb) to supabase_auth_admin;
 grant usage on schema public to supabase_auth_admin;
 grant select on public.entitlements to supabase_auth_admin;
+
+-- ---------- Guía escrita de cada clase (se ve debajo del video) ----------
+
+alter table public.lessons add column guide text not null default '';

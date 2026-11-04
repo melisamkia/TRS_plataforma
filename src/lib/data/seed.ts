@@ -207,6 +207,7 @@ function buildContent(productId: string, prefix: string, seed: typeof trsModules
         video_id: null,
         duration: null,
         resources: [],
+        guide: '',
         sort: li + 1,
       })
     })

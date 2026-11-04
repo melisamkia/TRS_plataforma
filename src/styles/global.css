@@ -422,3 +422,17 @@ footer.foot .wrap { display: flex; justify-content: space-between; gap: 10px; fl
   .cert-sheet { max-width: none; width: 297mm; height: 210mm; aspect-ratio: auto; box-shadow: none; border: 0; break-inside: avoid; }
 }
 .update-bar { background: var(--orange); color: #fff; }
+
+/* Guía de la clase */
+.guide { display: grid; gap: 14px; border-top: 1.5px solid var(--line); padding-top: 20px; max-width: 72ch; }
+.guide h2 { font-size: clamp(1.4rem, 3vw, 1.8rem); text-transform: none; margin-top: 10px; }
+.guide h3 { font-family: var(--f-serif); font-weight: 700; font-size: 1.15rem; margin-top: 6px; }
+.guide ul, .guide ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.guide ol li::marker { font-family: var(--f-type); font-weight: 700; color: var(--orange-d); }
+.guide code { font-family: var(--f-type); background: var(--paper-2); border: 1px solid var(--soft); padding: 0 0.3em; font-size: 0.92em; overflow-wrap: anywhere; }
+.guide a { color: var(--orange-d); }
+.guide img { border: 1.5px solid var(--line); width: 100%; height: auto; }
+.g-tip { background: var(--lime); border: 1.5px solid var(--line); padding: 12px 16px; }
+.g-code { position: relative; background: var(--ink); color: var(--stage-fg); border: 1.5px solid var(--line); }
+.g-code pre { margin: 0; padding: 16px 16px 56px; font-family: var(--f-type); font-size: 0.9rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+.g-code .btn { position: absolute; right: 8px; bottom: 8px; background: var(--lime); color: var(--ink); }

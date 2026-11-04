@@ -47,6 +47,7 @@ export function AdminContent() {
     video_id: null,
     duration: null,
     resources: [],
+    guide: '',
     sort: (lessonsOf(m).slice(-1)[0]?.sort ?? 0) + 1,
   })
 
@@ -263,7 +264,18 @@ function LessonEditor({ initial, onSave, onCancel }: { initial: Lesson; onSave: 
           <input id="le-dur" value={l.duration ?? ''} placeholder="12:40" onChange={(e) => setL({ ...l, duration: e.target.value })} />
         </label>
         <label className="field full">
-          <span>Descargas y links</span>
+          <span>Guía de la clase (se ve debajo del video)</span>
+          <textarea
+            id="le-guide"
+            rows={14}
+            value={l.guide ?? ''}
+            onChange={(e) => setL({ ...l, guide: e.target.value })}
+            placeholder={'## Título\nTexto normal, con **negrita**.\n\n1. Primer paso\n2. Segundo paso\n\n> Consejo en recuadro\n\n```\nTexto para copiar (un prompt, un comando)\n```\n\n![descripción](link de una imagen)'}
+          />
+          <small>## título · 1. paso · - punto · &gt; consejo · ``` texto para copiar ``` · ![foto](link) · **negrita** · [texto](link)</small>
+        </label>
+        <label className="field full">
+          <span>Links (opcional)</span>
           <textarea id="le-res" value={res} placeholder={'Una por línea: Texto | link\nPlantilla de estilo | https://drive.google.com/...'} onChange={(e) => setRes(e.target.value)} />
         </label>
       </div>

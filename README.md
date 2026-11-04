@@ -77,10 +77,25 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
    https://<proyecto>.supabase.co/functions/v1/compra?clave=<COMPRA_CLAVE>&producto=the-reel-studio
    ```
    Para la preventa sumar `&fundadora=1`. El mail de la compradora lo encuentra solo en lo que llegue.
-4. Conectar quién avisa. Beacons hoy no manda avisos de venta propios (solo desde el bloque de mails a Zapier), así que hay dos caminos:
-   - **Stripe** (si Beacons cobra con su Stripe): Stripe → Developers → Webhooks → Add endpoint → pegar la dirección → evento `checkout.session.completed`. Ojo: avisa todas las ventas de esa cuenta de Stripe, así que sirve mientras se venda un solo producto ahí.
-   - **Zapier o Make**: disparador de la venta (Stripe, PayPal o Gmail con el mail de "nueva venta" de Beacons) → acción "Webhooks: POST" a la dirección de arriba, con el mail en un campo `email`.
+4. Conectar quién avisa (Beacons cobra con Stripe y PayPal; Beacons no manda avisos propios):
+   - **Stripe**: Stripe → Developers → Webhooks → Add endpoint → pegar la dirección → eventos `checkout.session.completed` y `charge.succeeded`.
+   - **PayPal**: PayPal → Configuración de la cuenta → Notificaciones → Notificaciones instantáneas de pago (IPN) → pegar la dirección y activarlas.
+   - Los reembolsos y pagos pendientes se ignoran solos. Ojo: avisan todas las ventas de esa cuenta, así que sirve mientras se venda un solo producto ahí.
 5. Probarla: hacer una compra de prueba (o mandar el POST desde Zapier) y mirar "Compras automáticas" en el admin.
+
+### Guías de las clases
+
+Cada clase tiene una guía escrita que se ve debajo del video (no es descargable). Se escribe en Admin → Escenas y clases → Editar clase → "Guía de la clase", con este formato:
+
+```
+## Título            ### Subtítulo
+1. Paso numerado     - Punto
+> Consejo (recuadro verde)
+**negrita**   `nombre exacto`   [texto](link)
+![descripción](link de una imagen)
+```
+
+Y entre dos líneas con tres comillas invertidas (```) va un texto para copiar con botón "Copiar" (prompts, comandos).
 
 ### 5. Que no se pause (plan gratis)
 

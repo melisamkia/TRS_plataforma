@@ -1,5 +1,5 @@
-// Recibe el aviso de cada venta y da el acceso solo. Sirve para Zapier, Make, Stripe o cualquier servicio que
-// mande un POST con los datos de la compra.
+// Recibe el aviso de cada venta y da el acceso solo. Sirve para Stripe (webhook), PayPal (IPN), Zapier, Make o
+// cualquier servicio que mande un POST con los datos de la compra.
 //
 // Dirección (una por producto):
 //   https://<proyecto>.supabase.co/functions/v1/compra?clave=<COMPRA_CLAVE>&producto=the-reel-studio
@@ -28,7 +28,7 @@ function sameText(a: string, b: string): boolean {
 /** Busca el mail de la compradora en el aviso, venga de donde venga. */
 export function findBuyerEmail(payload: unknown): string | null {
   // 1) Campos conocidos (Stripe, Zapier, Make, formularios)
-  const preferred = ['customer_email', 'buyer_email', 'email', 'receipt_email']
+  const preferred = ['customer_email', 'buyer_email', 'payer_email', 'email', 'receipt_email']
   const nested = (o: Record<string, unknown>, ...path: string[]): unknown =>
     path.reduce<unknown>((acc, k) => (acc && typeof acc === 'object' ? (acc as Record<string, unknown>)[k] : undefined), o)
   if (payload && typeof payload === 'object') {
@@ -41,19 +41,43 @@ export function findBuyerEmail(payload: unknown): string | null {
       ...preferred.map((k) => o[k]),
       nested(o, 'customer', 'email'),
       nested(o, 'buyer', 'email'),
+      nested(o, 'resource', 'payer', 'email_address'), // PayPal webhooks
+      nested(o, 'payer', 'email_address'),
     ]
     for (const c of candidates) if (typeof c === 'string' && EMAIL_RE.test(c.trim())) return c.trim().toLowerCase()
   }
-  // 2) Cualquier campo cuyo nombre diga "email"/"mail"
-  const stack: unknown[] = [payload]
-  while (stack.length) {
-    const cur = stack.pop()
+  // 2) Cualquier campo cuyo nombre diga "email"/"mail", salteando los de quien vende (receiver, payee, merchant…)
+  const SELLER = /receiver|payee|merchant|seller|business|vendedor|account|platform/i
+  const queue: unknown[] = [payload]
+  while (queue.length) {
+    const cur = queue.shift()
     if (!cur || typeof cur !== 'object') continue
     for (const [k, v] of Object.entries(cur as Record<string, unknown>)) {
+      if (SELLER.test(k)) continue
       if (typeof v === 'string' && /mail/i.test(k) && EMAIL_RE.test(v.trim())) return v.trim().toLowerCase()
-      if (v && typeof v === 'object') stack.push(v)
+      if (v && typeof v === 'object') queue.push(v)
     }
   }
+  return null
+}
+
+/** Avisos que no son una venta cobrada (reembolsos, pagos pendientes, otros eventos de Stripe): se ignoran. */
+export function notAPaidSale(payload: unknown): string | null {
+  if (!payload || typeof payload !== 'object') return null
+  const o = payload as Record<string, unknown>
+  // Stripe: solo ventas terminadas
+  if (typeof o.type === 'string' && o.object === 'event') {
+    const ok = ['checkout.session.completed', 'charge.succeeded']
+    if (!ok.includes(o.type)) return `Evento de Stripe ignorado: ${o.type}`
+    const status = ((o.data as Record<string, unknown>)?.object as Record<string, unknown>)?.payment_status
+    if (o.type === 'checkout.session.completed' && status && status !== 'paid') return `Pago todavía no cobrado (${status})`
+  }
+  // PayPal IPN: solo pagos completados
+  if (typeof o.payment_status === 'string' && o.payment_status !== 'Completed') return `PayPal: pago ${o.payment_status}`
+  if (typeof o.txn_type === 'string' && /refund|reversal|dispute|adjustment/i.test(o.txn_type)) return `PayPal: ${o.txn_type}`
+  // PayPal webhooks: solo pagos capturados
+  if (typeof o.event_type === 'string' && o.resource && !['PAYMENT.CAPTURE.COMPLETED', 'CHECKOUT.ORDER.APPROVED', 'PAYMENT.SALE.COMPLETED'].includes(o.event_type))
+    return `Evento de PayPal ignorado: ${o.event_type}`
   return null
 }
 
@@ -86,6 +110,12 @@ Deno.serve(async (req) => {
   const source = url.searchParams.get('origen') ?? req.headers.get('user-agent')?.slice(0, 80) ?? null
 
   const log = (row: Record<string, unknown>) => sb.from('purchases').insert({ payload, source, ...row })
+
+  const skip = notAPaidSale(payload)
+  if (skip) {
+    await log({ email: findBuyerEmail(payload), status: 'ignorado', detail: skip })
+    return json({ ok: true, ignorado: skip })
+  }
 
   const email = findBuyerEmail(payload)
   if (!email) {

@@ -38,7 +38,7 @@ for (const m of db.modules) {
 out.push('')
 for (const l of db.lessons) {
   out.push(
-    `insert into public.lessons (id, module_id, title, description, video_id, duration, resources, sort) values (${[q(uuid(l.id)), q(uuid(l.module_id)), q(l.title), q(l.description), q(l.video_id), q(l.duration), `${q(JSON.stringify(l.resources))}::jsonb`, String(l.sort)].join(', ')});`,
+    `insert into public.lessons (id, module_id, title, description, video_id, duration, resources, guide, sort) values (${[q(uuid(l.id)), q(uuid(l.module_id)), q(l.title), q(l.description), q(l.video_id), q(l.duration), `${q(JSON.stringify(l.resources))}::jsonb`, q(l.guide), String(l.sort)].join(', ')});`,
   )
 }
 out.push('')

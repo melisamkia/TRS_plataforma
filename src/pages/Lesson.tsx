@@ -1,3 +1,4 @@
+import { Guide } from '../components/Guide'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Clapper, pad2 } from '../components/bits'
@@ -67,10 +68,11 @@ export function Lesson() {
                   </Link>
                 )}
               </div>
+              {lesson.guide && <Guide source={lesson.guide} />}
               {lesson.resources.length > 0 && (
                 <div>
                   <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    Descargas y links
+                    Links
                   </p>
                   <ul className="resources">
                     {lesson.resources.map((r) => (

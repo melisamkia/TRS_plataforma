@@ -52,6 +52,8 @@ export interface Lesson {
   video_id: string | null
   duration: string | null
   resources: Resource[]
+  /** Guía escrita que se ve debajo del video (formato simple, ver src/lib/guide.ts). */
+  guide: string
   sort: number
 }
 
@@ -111,7 +113,7 @@ export interface Purchase {
   id: string
   email: string | null
   product_id: string | null
-  status: 'ok' | 'sin_mail' | 'sin_producto' | 'error'
+  status: 'ok' | 'ignorado' | 'sin_mail' | 'sin_producto' | 'error'
   detail: string | null
   created_at: string
 }
