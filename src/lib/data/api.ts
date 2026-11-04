@@ -36,6 +36,8 @@ export interface DataApi {
   saveModule(m: Module): Promise<Module>
   deleteModule(id: string): Promise<void>
   saveLesson(l: Lesson): Promise<Lesson>
+  /** Sube un archivo de video a Bunny Stream y devuelve su Video ID. onProgress va de 0 a 1. Solo con Supabase. */
+  uploadVideo(file: File, title: string, onProgress: (fraction: number) => void): Promise<string>
   deleteLesson(id: string): Promise<void>
   saveUpdate(u: Update): Promise<Update>
   deleteUpdate(id: string): Promise<void>

@@ -1,5 +1,6 @@
 // Backend real: Supabase (login con enlace mágico, base de datos con permisos por alumna).
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { Upload } from 'tus-js-client'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
 import { SESSION_HOURS } from '../../config'
@@ -133,6 +134,38 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
     },
     async deleteModule(id) {
       check(await sb.from('modules').delete().eq('id', id))
+    },
+    async uploadVideo(file, title, onProgress) {
+      const { data, error } = await sb.functions.invoke('video-upload', { body: { title } })
+      if (error) {
+        let msg = 'No pudimos preparar la subida.'
+        try {
+          msg = ((await (error as { context?: Response }).context?.json()) as { error?: string })?.error ?? msg
+        } catch {
+          // sin detalle
+        }
+        throw new Error(msg)
+      }
+      const t = data as { video_id: string; library_id: string; expires: number; signature: string }
+      await new Promise<void>((resolve, reject) => {
+        const up = new Upload(file, {
+          endpoint: 'https://video.bunnycdn.com/tusupload',
+          retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
+          chunkSize: 50 * 1024 * 1024,
+          headers: {
+            AuthorizationSignature: t.signature,
+            AuthorizationExpire: String(t.expires),
+            VideoId: t.video_id,
+            LibraryId: t.library_id,
+          },
+          metadata: { filetype: file.type, title },
+          onProgress: (sent, total) => onProgress(total ? sent / total : 0),
+          onError: (e) => reject(new Error(`Se cortó la subida: ${e.message}`)),
+          onSuccess: () => resolve(),
+        })
+        up.start()
+      })
+      return t.video_id
     },
     async saveLesson(l) {
       return check(await sb.from('lessons').upsert(l).select('*').single()) as Lesson
