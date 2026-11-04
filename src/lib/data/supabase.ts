@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
+import { SESSION_HOURS } from '../../config'
 import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
@@ -11,6 +12,24 @@ function check<T>(res: { data: T | null; error: { message: string } | null }): T
 
 export function createSupabaseApi(url: string, anonKey: string): DataApi {
   const sb: SupabaseClient = createClient(url, anonKey)
+
+  // La sesión vence SESSION_HOURS después de entrar con el link (hora que guarda Supabase, no el navegador).
+  const expired = (lastSignIn: string | undefined) =>
+    !!lastSignIn && Date.now() - new Date(lastSignIn).getTime() > SESSION_HOURS * 60 * 60 * 1000
+  const closeIfExpired = async () => {
+    const { data } = await sb.auth.getSession()
+    if (data.session && expired(data.session.user.last_sign_in_at)) {
+      await sb.auth.signOut()
+      return true
+    }
+    return false
+  }
+  if (typeof window !== 'undefined') {
+    window.setInterval(closeIfExpired, 60 * 1000)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') closeIfExpired()
+    })
+  }
 
   const userId = async () => {
     const { data } = await sb.auth.getSession()
@@ -26,6 +45,7 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       const { data } = await sb.auth.getSession()
       const user = data.session?.user
       if (!user) return null
+      if (await closeIfExpired()) return null
       const res = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
       const p = check(res) as Profile | null
       return p ?? { id: user.id, email: user.email ?? '', full_name: '', is_admin: false }
