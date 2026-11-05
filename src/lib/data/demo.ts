@@ -57,6 +57,9 @@ export function createDemoApi(): DataApi {
   return {
     mode: 'demo',
 
+    async sessionEmail() {
+      return signedIn ? db.profile.email.toLowerCase() : null
+    },
     async getProfile() {
       return signedIn ? db.profile : null
     },

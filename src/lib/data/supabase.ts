@@ -1,6 +1,5 @@
 // Backend real: Supabase (login con enlace mágico, base de datos con permisos por alumna).
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { Upload } from 'tus-js-client'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
 import { SESSION_HOURS } from '../../config'
@@ -42,11 +41,17 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
   return {
     mode: 'supabase',
 
+    async sessionEmail() {
+      // Lee la sesión guardada en el navegador (sin ir a internet).
+      if (await closeIfExpired()) return null
+      const { data } = await sb.auth.getSession()
+      const user = data.session?.user
+      return user ? (user.email ?? '').toLowerCase() : null
+    },
     async getProfile() {
       const { data } = await sb.auth.getSession()
       const user = data.session?.user
       if (!user) return null
-      if (await closeIfExpired()) return null
       const res = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle()
       const p = check(res) as Profile | null
       return p ?? { id: user.id, email: user.email ?? '', full_name: '', is_admin: false }
@@ -65,7 +70,20 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       await sb.auth.signOut()
     },
     onAuthChange(cb) {
-      const { data } = sb.auth.onAuthStateChange(() => cb())
+      // Solo avisamos cuando cambia la persona (entró o salió). Supabase también avisa al arrancar, al renovar
+      // la sesión cada hora y al volver a la pestaña: ahí es la misma persona y recargar todo era tiempo perdido.
+      let lastUser: string | null | undefined
+      const { data } = sb.auth.onAuthStateChange((event, session) => {
+        const uid = session?.user.id ?? null
+        if (event === 'INITIAL_SESSION') {
+          lastUser = uid
+          return
+        }
+        if (uid === lastUser && event !== 'USER_UPDATED') return
+        lastUser = uid
+        // Fuera del aviso de Supabase: llamarlo desde adentro puede trabar la sesión.
+        window.setTimeout(cb, 0)
+      })
       return () => data.subscription.unsubscribe()
     },
 
@@ -76,9 +94,8 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       return check(await sb.from('entitlements').select('*').eq('email', email.toLowerCase())) as Entitlement[]
     },
     async listContent() {
-      const modules = check(await sb.from('modules').select('*').order('sort')) as Module[]
-      const lessons = check(await sb.from('lessons').select('*').order('sort')) as Lesson[]
-      return { modules, lessons }
+      const [m, l] = await Promise.all([sb.from('modules').select('*').order('sort'), sb.from('lessons').select('*').order('sort')])
+      return { modules: check(m) as Module[], lessons: check(l) as Lesson[] }
     },
     async listProgress() {
       const rows = check(await sb.from('progress').select('lesson_id')) as { lesson_id: string }[]
@@ -146,6 +163,8 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
         }
         throw new Error(msg)
       }
+      // La librería de subida solo se descarga cuando se usa (la mayoría nunca sube videos).
+      const { Upload } = await import('tus-js-client')
       const t = data as { video_id: string; library_id: string; expires: number; signature: string }
       await new Promise<void>((resolve, reject) => {
         const up = new Upload(file, {

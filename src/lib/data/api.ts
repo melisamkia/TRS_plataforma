@@ -5,6 +5,8 @@ export interface DataApi {
   mode: 'demo' | 'supabase'
 
   // Sesión
+  /** Mail de la sesión abierta, o null si no hay. Rápido: no va a internet. */
+  sessionEmail(): Promise<string | null>
   getProfile(): Promise<Profile | null>
   sendMagicLink(email: string): Promise<void>
   /** Solo en demo: entra directo. */

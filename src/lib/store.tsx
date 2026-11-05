@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api } from './data'
 import { expandBundles } from './data/api'
 import { isComplete, levelIndex, levelName, summarize } from './levels'
@@ -64,24 +64,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<string | null>(null)
   const [celebration, setCelebration] = useState<Celebration | null>(null)
 
+  // Si llegan dos cargas seguidas, solo cuenta la última (una vieja no pisa datos nuevos).
+  const loadSeq = useRef(0)
+
   const refresh = useCallback(async () => {
+    const seq = ++loadSeq.current
     try {
       setError(null)
-      const p = await api.getProfile()
-      setProfile(p)
-      if (!p) {
+      const email = await api.sessionEmail()
+      if (seq !== loadSeq.current) return
+      if (email === null) {
+        setProfile(null)
         setReady(true)
         return
       }
-      const [prods, ents, cont, prog, rs, ups, certs] = await Promise.all([
+      // Todo a la vez (antes primero el perfil y después el resto: dos viajes de ida y vuelta).
+      const [p, prods, ents, cont, prog, rs, ups, certs] = await Promise.all([
+        api.getProfile(),
         api.listProducts(),
-        api.listMyEntitlements(p.email),
+        api.listMyEntitlements(email),
         api.listContent(),
         api.listProgress(),
         api.listReels(),
         api.listUpdates(),
         api.listCertificates(),
       ])
+      if (seq !== loadSeq.current) return
+      setProfile(p)
       setProducts(prods)
       setEntitlements(ents)
       setContent(cont)
@@ -90,9 +99,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setUpdates(ups)
       setCertificates(certs)
     } catch (e) {
+      if (seq !== loadSeq.current) return
       setError(e instanceof Error ? e.message : 'Algo salió mal al cargar la plataforma.')
     } finally {
-      setReady(true)
+      if (seq === loadSeq.current) setReady(true)
     }
   }, [])
 
@@ -214,32 +224,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setProfile(null)
   }, [])
 
-  const value: Store = {
-    ready,
-    error,
-    profile,
-    products,
-    entitlements,
-    content,
-    completed,
-    reels,
-    updates,
-    certificates,
-    toast,
-    celebration,
-    owned,
-    catalog,
-    productContent,
-    productOf,
-    level,
-    setLessonDone,
-    addReel,
-    issueCertificate,
-    refresh,
-    signOut,
-    showToast,
-    closeCelebration: () => setCelebration(null),
-  }
+  const closeCelebration = useCallback(() => setCelebration(null), [])
+
+  // Mismo objeto mientras nada cambie: así las pantallas no se vuelven a dibujar sin motivo.
+  const value: Store = useMemo(
+    () => ({
+      ready,
+      error,
+      profile,
+      products,
+      entitlements,
+      content,
+      completed,
+      reels,
+      updates,
+      certificates,
+      toast,
+      celebration,
+      owned,
+      catalog,
+      productContent,
+      productOf,
+      level,
+      setLessonDone,
+      addReel,
+      issueCertificate,
+      refresh,
+      signOut,
+      showToast,
+      closeCelebration,
+    }),
+    [
+      ready, error, profile, products, entitlements, content, completed, reels, updates, certificates, toast, celebration,
+      owned, catalog, productContent, productOf, level, setLessonDone, addReel, issueCertificate, refresh, signOut,
+      showToast, closeCelebration,
+    ],
+  )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

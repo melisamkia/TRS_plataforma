@@ -42,7 +42,7 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 ### 1. Supabase (base de datos y login)
 
 1. Crear un proyecto en Supabase.
-2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos.
+2. En SQL Editor, correr los archivos de `supabase/migrations/` en orden de nombre y al final `supabase/seed.sql` (el contenido inicial). En el proyecto actual ya están corridos, **salvo `20261105000000_rendimiento.sql`** (permisos más rápidos): pegarlo en SQL Editor y correrlo una vez. Se puede correr de nuevo sin problema.
 3. Authentication → URL Configuration: poner la dirección de la plataforma en **Site URL** y en **Redirect URLs**.
 4. Authentication → Emails → Templates: en **Magic link** y en **Confirm signup** pegar `supabase/templates/enlace.html` (asunto: "Tu enlace para entrar a The Reel Studio").
 5. **Mails de entrada con Brevo** (el servicio que trae Supabase manda muy pocos por hora y cada entrada pide un link):

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { PLATFORM_BY, PLATFORM_NAME } from '../config'
 import { api } from '../lib/data'
@@ -62,7 +62,10 @@ export function Layout() {
         </div>
       )}
       <main>
-        <Outlet />
+        {/* El menú queda fijo mientras se descarga una pantalla que se abre por primera vez */}
+        <Suspense fallback={<p className="loading">Cargando…</p>}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="foot">
         <div className="wrap">
