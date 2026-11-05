@@ -4,8 +4,18 @@ import { api } from '../../lib/data'
 import { expandBundles } from '../../lib/data/api'
 import { parseEmails } from '../../lib/levels'
 import { useStore } from '../../lib/store'
-import type { Entitlement, Purchase } from '../../lib/types'
+import type { Entitlement, Purchase, WelcomeResult } from '../../lib/types'
 import { AdminShell, DeleteButton } from './shared'
+
+/** Texto corto para el aviso después de mandar bienvenidas. */
+function welcomeText(r: WelcomeResult): string {
+  const parts: string[] = []
+  if (r.sent) parts.push(`Bienvenida enviada a ${r.sent}.`)
+  if (r.failed.length)
+    parts.push(`No salió para ${r.failed.length} (${r.failed[0].email}: ${r.failed[0].error}).`)
+  if (r.remaining) parts.push(`Quedan ${r.remaining}: toca de nuevo "Mandar bienvenida".`)
+  return parts.join(' ') || 'No había a quién mandarle la bienvenida.'
+}
 
 export function AdminMembers() {
   const { products, refresh, showToast } = useStore()
@@ -16,6 +26,8 @@ export function AdminMembers() {
   const [filter, setFilter] = useState('')
   const [query, setQuery] = useState('')
   const [busy, setBusy] = useState(false)
+  const canMail = api.mode === 'supabase'
+  const [sending, setSending] = useState<string | null>(null)
 
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const load = async () => {
@@ -36,7 +48,7 @@ export function AdminMembers() {
     if (!emails.length || !picked.length) return
     setBusy(true)
     try {
-      const n = await api.grantAccess(emails, picked, founder)
+      const { created: n } = await api.grantAccess(emails, picked, founder)
       await load()
       await refresh()
       setText('')
@@ -45,6 +57,21 @@ export function AdminMembers() {
       showToast(err instanceof Error ? err.message : 'No se pudo dar acceso.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const pending = useMemo(() => [...new Set(all.filter((e) => !e.welcome_sent_at).map((e) => e.email))], [all])
+
+  const sendWelcome = async (key: string, target: { emails: string[] } | { pending: true }) => {
+    setSending(key)
+    try {
+      const res = await api.sendWelcome(target)
+      await load()
+      showToast(welcomeText(res))
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'No se pudo mandar la bienvenida.')
+    } finally {
+      setSending(null)
     }
   }
 
@@ -82,6 +109,7 @@ export function AdminMembers() {
           <input id="am-founder" type="checkbox" checked={founder} onChange={(e) => setFounder(e.target.checked)} />
           <span>Son compradoras de preventa: su credencial dice "Fundadora"</span>
         </label>
+
         <div className="acts">
           <button className="btn" type="submit" disabled={busy || !emails.length || !picked.length}>
             Dar acceso
@@ -105,6 +133,24 @@ export function AdminMembers() {
           <input id="am-q" aria-label="Buscar mail" placeholder="Buscar mail" value={query} onChange={(e) => setQuery(e.target.value)} style={{ width: 'auto' }} />
         </div>
       </div>
+      {canMail && pending.length > 0 && (
+        <div className="acts" style={{ margin: '0 0 14px', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="muted">
+            {pending.length} alumna{pending.length > 1 ? 's' : ''} todavía no recibi{pending.length > 1 ? 'eron' : 'ó'} la bienvenida.
+          </span>
+          <button
+            className="btn"
+            type="button"
+            disabled={sending !== null}
+            onClick={() => {
+              if (window.confirm(`¿Mandar el mail de bienvenida a ${pending.length} alumna${pending.length > 1 ? 's' : ''}?`))
+                sendWelcome('pending', { pending: true })
+            }}
+          >
+            {sending === 'pending' ? 'Mandando…' : `Mandar bienvenida (${pending.length})`}
+          </button>
+        </div>
+      )}
       <div className="stat-row">
         {products
           .filter((p) => all.some((e) => e.product_id === p.id))
@@ -123,6 +169,7 @@ export function AdminMembers() {
               <th>Nº</th>
               <th>Fundadora</th>
               <th>Desde</th>
+              {canMail && <th>Bienvenida</th>}
               <th />
             </tr>
           </thead>
@@ -134,6 +181,19 @@ export function AdminMembers() {
                 <td className="num">{String(e.member_number ?? '').padStart(3, '0')}</td>
                 <td>{e.founder ? 'Sí' : 'No'}</td>
                 <td>{formatDate(e.created_at)}</td>
+                {canMail && (
+                  <td>
+                    {e.welcome_sent_at ? formatDate(e.welcome_sent_at) : 'Pendiente'}{' '}
+                    <button
+                      className="link-btn"
+                      type="button"
+                      disabled={sending !== null}
+                      onClick={() => sendWelcome(e.id, { emails: [e.email] })}
+                    >
+                      {sending === e.id ? 'Mandando…' : e.welcome_sent_at ? 'Reenviar' : 'Mandar'}
+                    </button>
+                  </td>
+                )}
                 <td style={{ textAlign: 'right' }}>
                   <DeleteButton
                     label="Quitar"
@@ -149,7 +209,7 @@ export function AdminMembers() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={canMail ? 7 : 6} className="muted">
                   No hay accesos con ese filtro.
                 </td>
               </tr>

@@ -79,6 +79,13 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 
 **A mano**: Admin → Alumnas y accesos: pegar los mails o el CSV de ventas de Beacons, elegir The Reel Studio (B-Rolls se suma solo) y marcar "Fundadora" para las de preventa.
 
+**Mail de bienvenida (Brevo)**: desde Admin → Alumnas y accesos, el botón **Mandar bienvenida** le manda un mail a cada compradora que todavía no lo recibió: qué compró y un botón para entrar (con su mail ya escrito). En la tabla, la columna "Bienvenida" muestra a quién le llegó y permite mandarlo o reenviarlo de a una. Es manual: dar acceso no manda el mail solo.
+
+1. Correr `supabase/migrations/20261105000100_bienvenida.sql` en SQL Editor.
+2. Brevo → SMTP & API → **API Keys** → Generate a new API key (es distinta de la SMTP key).
+3. Supabase → Edge Functions → Secrets: `BREVO_API_KEY` (esa clave) y `BIENVENIDA_REMITENTE` (el mail remitente verificado en Brevo). Opcional: `PLATAFORMA_URL` si la dirección no es `https://thereelstudioapp.netlify.app`.
+4. Publicar la función: `supabase functions deploy bienvenida --no-verify-jwt`, o desde el panel (Edge Functions → Deploy a new function → Via Editor, nombre `bienvenida`, pegar `supabase/functions/bienvenida/index.ts` y en los ajustes de la función apagar **Verify JWT**).
+
 **Automático (función `compra`)**: recibe el aviso de cada venta y carga el acceso sola. Cada aviso queda en Admin → Alumnas y accesos → "Compras automáticas".
 
 1. Supabase → Edge Functions → Secrets: cargar `COMPRA_CLAVE` (una clave larga inventada, ej. 30 letras y números al azar).
@@ -116,7 +123,7 @@ src/lib/data/            conexión con Supabase y modo demo
 src/pages/               pantallas de alumna
 src/pages/admin/         panel de admin
 supabase/migrations/     tablas y permisos (cada alumna ve solo lo que compró)
-supabase/functions/      video-token (link firmado de Bunny), video-upload (subir videos desde el Admin) y compra (accesos automáticos)
+supabase/functions/      video-token (link firmado de Bunny), video-upload (subir videos desde el Admin), compra (accesos automáticos) y bienvenida (mail de bienvenida con Brevo)
 ```
 
 Si cambiás `curso-trs.ts` o `seed.ts`, regenerá el SQL con `npm run seed:sql`. Para pasar el curso a un proyecto que ya tiene datos, se corre `supabase/curso-trs.sql` (reemplaza las escenas de The Reel Studio y borra el progreso de esas clases).

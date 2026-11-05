@@ -1,4 +1,4 @@
-import type { Certificate, CertificateCheck, Content, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Content, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update, WelcomeResult } from '../types'
 
 /** Todo lo que la app necesita del backend. Hay dos versiones: demo (navegador) y Supabase. */
 export interface DataApi {
@@ -44,8 +44,10 @@ export interface DataApi {
   saveUpdate(u: Update): Promise<Update>
   deleteUpdate(id: string): Promise<void>
   listAllEntitlements(): Promise<Entitlement[]>
-  /** Da acceso a cada mail en cada producto (y en lo que esos productos incluyen). Devuelve cuántos accesos nuevos se crearon. */
-  grantAccess(emails: string[], productIds: string[], founder: boolean): Promise<number>
+  /** Da acceso a cada mail en cada producto (y en lo que esos productos incluyen). Devuelve cuántos accesos nuevos se crearon y de qué mails. */
+  grantAccess(emails: string[], productIds: string[], founder: boolean): Promise<{ created: number; emails: string[] }>
+  /** Mail de bienvenida (Brevo): a esos mails, o a todas las que todavía no lo recibieron. */
+  sendWelcome(target: { emails: string[] } | { pending: true }): Promise<WelcomeResult>
   revokeAccess(entitlementId: string): Promise<void>
   /** Últimas compras que llegaron solas. En demo, ninguna. */
   listPurchases(): Promise<Purchase[]>

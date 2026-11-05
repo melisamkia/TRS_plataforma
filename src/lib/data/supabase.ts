@@ -3,7 +3,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
 import { SESSION_HOURS } from '../../config'
-import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update, WelcomeResult } from '../types'
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message)
@@ -205,12 +205,26 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       const products = check(await sb.from('products').select('*')) as Product[]
       const ids = expandBundles(productIds, products)
       const rows = emails.flatMap((email) => ids.map((product_id) => ({ email, product_id, founder })))
-      if (rows.length === 0) return 0
+      if (rows.length === 0) return { created: 0, emails: [] }
       const res = await sb
         .from('entitlements')
         .upsert(rows, { onConflict: 'email,product_id', ignoreDuplicates: true })
-        .select('id')
-      return (check(res) as { id: string }[]).length
+        .select('id,email')
+      const created = check(res) as { id: string; email: string }[]
+      return { created: created.length, emails: [...new Set(created.map((r) => r.email))] }
+    },
+    async sendWelcome(target) {
+      const { data, error } = await sb.functions.invoke('bienvenida', { body: target })
+      if (error) {
+        let msg = 'No pudimos mandar la bienvenida. Revisa que la función "bienvenida" esté publicada.'
+        try {
+          msg = ((await (error as { context?: Response }).context?.json()) as { error?: string })?.error ?? msg
+        } catch {
+          // sin detalle
+        }
+        throw new Error(msg)
+      }
+      return data as WelcomeResult
     },
     async revokeAccess(id) {
       check(await sb.from('entitlements').delete().eq('id', id))

@@ -74,6 +74,16 @@ export interface Entitlement {
   member_number: number | null
   founder: boolean
   created_at: string
+  /** Cuándo se le mandó el mail de bienvenida. Vacío = todavía no. */
+  welcome_sent_at?: string | null
+}
+
+/** Resultado de mandar mails de bienvenida. */
+export interface WelcomeResult {
+  sent: number
+  failed: { email: string; error: string }[]
+  /** Si eran más de las que se mandan de una vez, cuántas quedaron para la próxima. */
+  remaining: number
 }
 
 export interface Reel {

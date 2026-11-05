@@ -5,7 +5,14 @@ import { useStore } from '../lib/store'
 
 export function Login() {
   const { refresh } = useStore()
-  const [email, setEmail] = useState('')
+  // El botón del mail de bienvenida trae el mail en la dirección (?email=): ya queda escrito.
+  const [email, setEmail] = useState(() => {
+    try {
+      return new URLSearchParams(window.location.search).get('email')?.trim().toLowerCase() ?? ''
+    } catch {
+      return ''
+    }
+  })
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)

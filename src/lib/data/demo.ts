@@ -188,6 +188,7 @@ export function createDemoApi(): DataApi {
     async grantAccess(emails, productIds, founder) {
       const ids = expandBundles(productIds, db.products)
       let created = 0
+      const newEmails = new Set<string>()
       const list = [...db.entitlements]
       for (const email of emails) {
         for (const pid of ids) {
@@ -195,11 +196,15 @@ export function createDemoApi(): DataApi {
           const next = Math.max(0, ...list.filter((e) => e.product_id === pid).map((e) => e.member_number ?? 0)) + 1
           list.push({ id: newId(), email, product_id: pid, member_number: next, founder, created_at: new Date().toISOString() })
           created++
+          newEmails.add(email)
         }
       }
       db = { ...db, entitlements: list }
       save()
-      return created
+      return { created, emails: [...newEmails] }
+    },
+    async sendWelcome() {
+      throw new Error('En el modo demo no se mandan mails. Funciona con Supabase y Brevo conectados.')
     },
     async revokeAccess(id) {
       db = { ...db, entitlements: db.entitlements.filter((e) => e.id !== id) }
