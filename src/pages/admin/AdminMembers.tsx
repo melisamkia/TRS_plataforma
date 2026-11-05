@@ -13,7 +13,7 @@ function welcomeText(r: WelcomeResult): string {
   if (r.sent) parts.push(`Bienvenida enviada a ${r.sent}.`)
   if (r.failed.length)
     parts.push(`No salió para ${r.failed.length} (${r.failed[0].email}: ${r.failed[0].error}).`)
-  if (r.remaining) parts.push(`Quedan ${r.remaining}: toca de nuevo "Mandar bienvenida".`)
+  if (r.remaining) parts.push(`Quedan ${r.remaining} pendientes: toca de nuevo "Mandar bienvenida" (si fue por el límite de mails por hora, en un rato).`)
   return parts.join(' ') || 'No había a quién mandarle la bienvenida.'
 }
 
@@ -48,11 +48,20 @@ export function AdminMembers() {
     if (!emails.length || !picked.length) return
     setBusy(true)
     try {
-      const { created: n } = await api.grantAccess(emails, picked, founder)
+      const { created: n, emails: fresh } = await api.grantAccess(emails, picked, founder)
+      setText('')
+      let msg = n === 0 ? 'Esas alumnas ya tenían acceso.' : `Listo: ${n} acceso${n > 1 ? 's' : ''} nuevo${n > 1 ? 's' : ''}.`
+      // Bienvenida automática a las que recibieron algo nuevo.
+      if (canMail && fresh.length) {
+        try {
+          msg += ' ' + welcomeText(await api.sendWelcome({ emails: fresh }))
+        } catch (err) {
+          msg += ` La bienvenida no salió (${err instanceof Error ? err.message : 'error'}): reintenta con "Mandar bienvenida".`
+        }
+      }
       await load()
       await refresh()
-      setText('')
-      showToast(n === 0 ? 'Esas alumnas ya tenían acceso.' : `Listo: ${n} acceso${n > 1 ? 's' : ''} nuevo${n > 1 ? 's' : ''}.`)
+      showToast(msg)
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'No se pudo dar acceso.')
     } finally {
@@ -83,7 +92,7 @@ export function AdminMembers() {
       <form className="editor" onSubmit={submit}>
         <h3>Dar acceso</h3>
         <p className="muted">
-          Pega los mails de las compradoras: uno por línea, separados por coma o el CSV entero de ventas de Beacons. Tomamos solo los mails. Entran con ese mail, sin contraseña.
+          Pega los mails de las compradoras: uno por línea, separados por coma o el CSV entero de ventas de Beacons. Tomamos solo los mails. Entran con ese mail, sin contraseña. A las nuevas les llega sola la bienvenida con el botón para entrar.
         </p>
         <label className="field">
           <span>Mails</span>
@@ -245,7 +254,7 @@ export function AdminMembers() {
                   <td>{formatDate(b.created_at)}</td>
                   <td>{b.email ?? '—'}</td>
                   <td>{b.product_id ? title(b.product_id) : '—'}</td>
-                  <td>{b.status === 'ok' ? 'Acceso dado' : b.detail ?? b.status}</td>
+                  <td>{b.status === 'ok' ? b.detail ?? 'Acceso dado' : b.detail ?? b.status}</td>
                 </tr>
               ))}
             </tbody>

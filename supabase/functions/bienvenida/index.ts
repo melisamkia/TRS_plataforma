@@ -1,67 +1,60 @@
-// Manda el mail de bienvenida (con Brevo) a las alumnas que recibieron acceso: qué compraron y cómo entrar.
-// La llama el Admin: "Mandar bienvenida" (a todas las que todavía no la recibieron) o "Mandar"/"Reenviar" en cada fila.
+// Manda la bienvenida a las alumnas con acceso, con los mails de Supabase (el mismo envío que los enlaces para entrar).
+//  - Si todavía no tiene cuenta: le llega la invitación (plantilla "Invite user" = supabase/templates/bienvenida.html)
+//    con lo que compró y un botón que la deja adentro con un click.
+//  - Si ya tiene cuenta: le llega el enlace para entrar de siempre (plantilla "Magic link").
+// La llaman el Admin (al dar acceso, y el botón "Mandar bienvenida") y la función "compra" (ventas automáticas).
 //
 // Variables (Supabase → Edge Functions → Secrets):
-//   BREVO_API_KEY          Brevo → SMTP & API → API Keys → Generate a new API key (NO es la SMTP key).
-//   BIENVENIDA_REMITENTE   el mail que manda (tiene que estar verificado en Brevo → Senders).
-//   PLATAFORMA_URL         opcional. Dirección de la plataforma (por defecto https://thereelstudioapp.netlify.app).
+//   PLATAFORMA_URL   opcional. Dirección de la plataforma (por defecto https://thereelstudioapp.netlify.app).
+//   COMPRA_CLAVE     la misma de la función "compra" (así "compra" puede pedir la bienvenida).
 //
 // Publicar: supabase functions deploy bienvenida --no-verify-jwt
-//   (revisa ella misma que quien llama sea una admin con sesión)
+//   (revisa ella misma quién llama: una admin con sesión o la función "compra" con la clave)
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-clave',
 }
 
-const MAX_PER_CALL = 200
+const MAX_PER_CALL = 100
 const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 }
 
-function esc(s: string): string {
-  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+function sameText(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
 }
 
-export function welcomeEmail(email: string, products: string[], site: string) {
-  const link = `${site}/?email=${encodeURIComponent(email)}`
-  const list = products.map((t) => `<li style="margin:0 0 6px"><b>${esc(t)}</b></li>`).join('')
-  const html = `<div style="background:#f6f3ef;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;color:#141210">
-  <div style="max-width:480px;margin:0 auto;background:#ffffff;border:1.5px solid #141210">
-    <div style="background:#141210;color:#d9f99d;padding:14px 24px;font-family:'Courier New',monospace;font-size:12px;letter-spacing:3px">THE REEL STUDIO</div>
-    <div style="padding:28px 24px">
-      <h1 style="font-family:Georgia,'Times New Roman',serif;font-weight:400;font-size:30px;line-height:1.1;margin:0 0 14px">Bienvenida al set</h1>
-      <p style="font-size:16px;line-height:1.5;margin:0 0 12px">Ya tienes acceso a:</p>
-      <ul style="font-size:16px;line-height:1.4;margin:0 0 20px;padding-left:20px">${list}</ul>
-      <p style="font-size:16px;line-height:1.5;margin:0 0 24px">Para entrar, toca el botón: tu mail (<b>${esc(email)}</b>) ya aparece escrito. Toca <b>Enviarme el enlace</b> y te llega un enlace a este mail para entrar con un click. No necesitas contraseña.</p>
-      <a href="${esc(link)}" style="display:inline-block;background:#e4673f;color:#ffffff;text-decoration:none;font-family:'Courier New',monospace;font-weight:bold;font-size:14px;letter-spacing:2px;padding:14px 22px">ENTRAR A LA PLATAFORMA</a>
-      <p style="font-size:13px;line-height:1.5;color:#5e5953;margin:24px 0 0">Guarda este mail: cada vez que quieras entrar, el botón te lleva directo.<br>Si el enlace para entrar no te llega, revisa Spam y Promociones.</p>
-    </div>
-  </div>
-</div>`
-  const text = `Bienvenida al set\n\nYa tienes acceso a:\n${products.map((t) => `- ${t}`).join('\n')}\n\nPara entrar, abre ${link} (tu mail ${email} ya aparece escrito), toca "Enviarme el enlace" y te llega un enlace a este mail para entrar con un click. No necesitas contraseña.\n\nSi el enlace no te llega, revisa Spam y Promociones.`
-  return { subject: 'Ya tienes acceso a The Reel Studio', html, text }
+/** "A, B y C" */
+export function joinTitles(titles: string[]): string {
+  if (titles.length <= 1) return titles[0] ?? ''
+  return `${titles.slice(0, -1).join(', ')} y ${titles[titles.length - 1]}`
 }
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Usa POST' }, 405)
 
-  // Solo una admin con sesión.
-  const asCaller = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
-    global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
-    auth: { persistSession: false },
-  })
-  const { data: isAdmin } = await asCaller.rpc('is_admin')
-  const allowed = isAdmin === true
+  // Quién llama: la función "compra" (con la clave) o una admin con sesión.
+  const clave = Deno.env.get('COMPRA_CLAVE') ?? ''
+  const given = req.headers.get('x-clave') ?? ''
+  let allowed = !!clave && !!given && sameText(given, clave)
+  if (!allowed) {
+    const asCaller = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } },
+      auth: { persistSession: false },
+    })
+    const { data } = await asCaller.rpc('is_admin')
+    allowed = data === true
+  }
   if (!allowed) return json({ error: 'Solo las admins pueden mandar la bienvenida.' }, 403)
 
-  const apiKey = Deno.env.get('BREVO_API_KEY')
-  const sender = Deno.env.get('BIENVENIDA_REMITENTE')
-  if (!apiKey || !sender) return json({ error: 'Faltan BREVO_API_KEY o BIENVENIDA_REMITENTE en los secrets de Supabase.' }, 500)
   const site = (Deno.env.get('PLATAFORMA_URL') || 'https://thereelstudioapp.netlify.app').replace(/\/+$/, '')
 
   let body: { emails?: unknown; pending?: unknown } = {}
@@ -72,11 +65,11 @@ Deno.serve(async (req) => {
   }
 
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { persistSession: false },
+    auth: { persistSession: false, autoRefreshToken: false },
   })
 
   // A quiénes: los mails que vienen, o todas las que todavía no recibieron la bienvenida.
-  let query = sb.from('entitlements').select('email, product_id, welcome_sent_at')
+  let query = sb.from('entitlements').select('email, product_id')
   if (body.pending === true) {
     query = query.is('welcome_sent_at', null)
   } else {
@@ -105,40 +98,28 @@ Deno.serve(async (req) => {
 
   const failed: { email: string; error: string }[] = []
   let sent = 0
-  const sendOne = async ([email, ids]: [string, string[]]) => {
-    const productTitles = [...new Set(ids)]
-      .sort((a, b) => (order.get(a) ?? 99) - (order.get(b) ?? 99))
-      .map((id) => titles.get(id))
-      .filter((t): t is string => !!t)
-    const mail = welcomeEmail(email, productTitles, site)
-    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-      method: 'POST',
-      headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({
-        sender: { name: 'The Reel Studio', email: sender },
-        to: [{ email }],
-        subject: mail.subject,
-        htmlContent: mail.html,
-        textContent: mail.text,
-      }),
-    })
-    if (!res.ok) {
-      const detail = await res.text().catch(() => '')
-      let msg = `Brevo respondió ${res.status}`
-      try {
-        msg = (JSON.parse(detail) as { message?: string }).message ?? msg
-      } catch {
-        // sin detalle
-      }
-      failed.push({ email, error: msg })
-      return
+  // De a una: los mails de Supabase tienen límite por hora y así no se dispara todo junto.
+  for (const [email, ids] of targets) {
+    const productos = joinTitles(
+      [...new Set(ids)]
+        .sort((a, b) => (order.get(a) ?? 99) - (order.get(b) ?? 99))
+        .map((id) => titles.get(id))
+        .filter((t): t is string => !!t),
+    )
+    let { error } = await sb.auth.admin.inviteUserByEmail(email, { redirectTo: site, data: { productos } })
+    // Ya tiene cuenta: le mandamos el enlace para entrar.
+    if (error && (error.code === 'email_exists' || /already been registered|already exists/i.test(error.message))) {
+      ;({ error } = await sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: site } }))
+    }
+    if (error) {
+      failed.push({ email, error: error.message })
+      // Límite de mails alcanzado: las que faltan quedan pendientes para más tarde.
+      if (error.status === 429 || /rate limit/i.test(error.message)) break
+      continue
     }
     await sb.from('entitlements').update({ welcome_sent_at: new Date().toISOString() }).eq('email', email)
     sent++
   }
 
-  // De a 5 por vez: rápido sin pasarse de los límites de Brevo.
-  for (let i = 0; i < targets.length; i += 5) await Promise.all(targets.slice(i, i + 5).map(sendOne))
-
-  return json({ sent, failed, remaining: Math.max(0, byEmail.size - targets.length) })
+  return json({ sent, failed, remaining: Math.max(0, byEmail.size - sent - failed.length) })
 })

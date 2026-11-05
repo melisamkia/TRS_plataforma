@@ -79,12 +79,13 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
 
 **A mano**: Admin → Alumnas y accesos: pegar los mails o el CSV de ventas de Beacons, elegir The Reel Studio (B-Rolls se suma solo) y marcar "Fundadora" para las de preventa.
 
-**Mail de bienvenida (Brevo)**: desde Admin → Alumnas y accesos, el botón **Mandar bienvenida** le manda un mail a cada compradora que todavía no lo recibió: qué compró y un botón para entrar (con su mail ya escrito). En la tabla, la columna "Bienvenida" muestra a quién le llegó y permite mandarlo o reenviarlo de a una. Es manual: dar acceso no manda el mail solo.
+**Mail de bienvenida (automático)**: cada vez que se da un acceso nuevo (a mano en el Admin o por una venta que llega a la función `compra`), a la compradora le llega sola la bienvenida con lo que compró y un botón que la deja adentro con un click. Sale por el mismo envío de mails de Supabase que los enlaces para entrar (no hace falta otra clave). Si ya tenía cuenta, le llega el enlace para entrar de siempre. En Admin → Alumnas y accesos, la columna "Bienvenida" muestra a quién le llegó, y el botón **Mandar bienvenida** se la manda a todas las que todavía no la recibieron (ej: las que se cargaron antes de que existiera).
 
 1. Correr `supabase/migrations/20261105000100_bienvenida.sql` en SQL Editor.
-2. Brevo → SMTP & API → **API Keys** → Generate a new API key (es distinta de la SMTP key).
-3. Supabase → Edge Functions → Secrets: `BREVO_API_KEY` (esa clave) y `BIENVENIDA_REMITENTE` (el mail remitente verificado en Brevo). Opcional: `PLATAFORMA_URL` si la dirección no es `https://thereelstudioapp.netlify.app`.
-4. Publicar la función: `supabase functions deploy bienvenida --no-verify-jwt`, o desde el panel (Edge Functions → Deploy a new function → Via Editor, nombre `bienvenida`, pegar `supabase/functions/bienvenida/index.ts` y en los ajustes de la función apagar **Verify JWT**).
+2. Authentication → Emails → Templates → **Invite user**: pegar `supabase/templates/bienvenida.html` (asunto: "Ya tienes acceso a The Reel Studio").
+3. Authentication → Providers → Email → **Email OTP Expiration**: `86400` (el botón del mail dura 24 horas en vez de 1).
+4. Publicar la función `bienvenida`: Edge Functions → Deploy a new function → Via Editor, nombre `bienvenida`, pegar `supabase/functions/bienvenida/index.ts` y en sus ajustes apagar **Verify JWT** (o `supabase functions deploy bienvenida --no-verify-jwt`). Si ya está publicada `compra`, volver a publicarla con el código nuevo.
+5. Ojo con Authentication → Rate Limits → "emails por hora": la bienvenida cuenta. Si se llega al límite, las que faltan quedan pendientes y se mandan después con el botón.
 
 **Automático (función `compra`)**: recibe el aviso de cada venta y carga el acceso sola. Cada aviso queda en Admin → Alumnas y accesos → "Compras automáticas".
 

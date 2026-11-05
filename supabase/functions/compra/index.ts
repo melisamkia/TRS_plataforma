@@ -8,6 +8,8 @@
 // Variables (Supabase → Edge Functions → Secrets):
 //   COMPRA_CLAVE  una clave larga inventada por ustedes. Sin ella nadie puede darse acceso.
 //
+// Si el acceso es nuevo, le pide a la función "bienvenida" que le mande la bienvenida a la compradora.
+//
 // Publicar: supabase functions deploy compra --no-verify-jwt
 //   (sin --no-verify-jwt Supabase rechaza los avisos porque no traen sesión de usuaria)
 import { createClient } from 'npm:@supabase/supabase-js@2'
@@ -81,6 +83,22 @@ export function notAPaidSale(payload: unknown): string | null {
   return null
 }
 
+/** Pide la bienvenida. Si falla, el acceso igual queda dado (se manda después desde el Admin). */
+async function sendWelcome(email: string, clave: string): Promise<string> {
+  try {
+    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bienvenida`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-clave': clave },
+      body: JSON.stringify({ emails: [email] }),
+    })
+    const data = (await res.json().catch(() => ({}))) as { sent?: number; error?: string; failed?: { error: string }[] }
+    if (res.ok && data.sent) return 'bienvenida enviada'
+    return `la bienvenida no salió: ${data.error ?? data.failed?.[0]?.error ?? `error ${res.status}`}`
+  } catch (e) {
+    return `la bienvenida no salió: ${e instanceof Error ? e.message : 'sin respuesta'}`
+  }
+}
+
 async function readPayload(req: Request): Promise<unknown> {
   const type = req.headers.get('content-type') ?? ''
   const text = await req.text()
@@ -135,12 +153,17 @@ Deno.serve(async (req) => {
 
   const ids = [product.id, ...((product.includes as string[]) ?? [])]
   const rows = ids.map((product_id) => ({ email, product_id, founder }))
-  const { error } = await sb.from('entitlements').upsert(rows, { onConflict: 'email,product_id', ignoreDuplicates: true })
+  const { data: created, error } = await sb
+    .from('entitlements')
+    .upsert(rows, { onConflict: 'email,product_id', ignoreDuplicates: true })
+    .select('id')
   if (error) {
     await log({ email, product_id: product.id, status: 'error', detail: error.message })
     return json({ ok: false, error: 'No se pudo guardar' }, 500)
   }
 
-  await log({ email, product_id: product.id, status: 'ok' })
+  // Bienvenida solo si el acceso es nuevo (si el aviso llega dos veces, no le mandamos dos mails).
+  const welcome = created && created.length > 0 ? await sendWelcome(email, expected) : 'ya tenía acceso'
+  await log({ email, product_id: product.id, status: 'ok', detail: `Acceso dado · ${welcome}` })
   return json({ ok: true })
 })
