@@ -2,7 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { api } from './data'
 import { expandBundles } from './data/api'
 import { isComplete, levelIndex, levelName, summarize } from './levels'
-import type { Certificate, Content, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from './types'
+import { PASEO_NAME } from '../config'
+import type { Certificate, Content, Entitlement, Lesson, Module, PaseoReel, Product, Profile, Reel, Update } from './types'
 
 export interface Celebration {
   title: string
@@ -33,6 +34,12 @@ interface Store {
   level(productId: string): number
   setLessonDone(lesson: Lesson, done: boolean): Promise<void>
   addReel(url: string | null, productId: string): Promise<void>
+  /** Producto con Paseo de la Fama (The Reel Studio) si la alumna lo tiene; para admin, siempre. */
+  paseoProduct: Product | undefined
+  /** Llamar al terminar de subir un reel al Paseo: suma al nivel y festeja. */
+  reelUploaded(reel: PaseoReel): void
+  /** Llamar al borrar un reel propio del Paseo. */
+  reelRemoved(reelId: string): void
   issueCertificate(productId: string, fullName: string): Promise<Certificate>
   refresh(): Promise<void>
   signOut(): Promise<void>
@@ -202,6 +209,36 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [products, completed, reels.length, levelWith, showToast],
   )
 
+  const reelUploaded = useCallback(
+    (reel: PaseoReel) => {
+      const product = products.find((p) => p.id === reel.product_id)
+      const before = levelWith(reel.product_id, completed, reels.length)
+      const after = levelWith(reel.product_id, completed, reels.length + 1)
+      setReels((r) => [...r, { id: reel.id, url: reel.url, created_at: reel.created_at, video_id: reel.video_id, status: 'lista' }])
+      if (product?.gamified && after > before) {
+        setCelebration({
+          kicker: `Estreno en el ${PASEO_NAME}`,
+          title: `¡Subiste a ${levelName(after)}!`,
+          body: `Tu reel ya tiene su estrella en el ${PASEO_NAME}. Nivel ${after + 1} de 4 en ${product.title}.`,
+        })
+      } else {
+        setCelebration({
+          kicker: 'Estreno',
+          title: '¡Luces, cámara, estrella!',
+          body: `Tu reel ya está en el ${PASEO_NAME}. Bunny lo termina de procesar en unos minutos. Llevas ${reels.length + 1} reels con el sistema.`,
+        })
+      }
+    },
+    [products, completed, reels.length, levelWith],
+  )
+
+  const reelRemoved = useCallback((reelId: string) => setReels((r) => r.filter((x) => x.id !== reelId)), [])
+
+  const paseoProduct = useMemo(
+    () => owned.find((p) => p.gamified) ?? (profile?.is_admin ? products.find((p) => p.gamified) : undefined),
+    [owned, products, profile],
+  )
+
   const issueCertificate = useCallback(async (productId: string, fullName: string) => {
     const cert = await api.issueCertificate(productId, fullName)
     setCertificates((list) => [...list.filter((c) => c.product_id !== productId), cert])
@@ -234,6 +271,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     level,
     setLessonDone,
     addReel,
+    paseoProduct,
+    reelUploaded,
+    reelRemoved,
     issueCertificate,
     refresh,
     signOut,

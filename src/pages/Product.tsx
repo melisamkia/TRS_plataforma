@@ -140,6 +140,12 @@ function OwnedProduct({ product }: { product: P }) {
                   <span>de edición que te ahorraste (aprox.)</span>
                 </div>
               </div>
+              <Link className="btn" to="/paseo?subir=1">
+                ★ Subir mi reel al Paseo de la Fama
+              </Link>
+              <p className="muted" style={{ fontSize: '0.85rem' }}>
+                ¿Ya lo publicaste y no quieres subirlo? Márcalo igual para tu nivel:
+              </p>
               <form className="reel-form" onSubmit={onReel}>
                 <input
                   id="reel-url"

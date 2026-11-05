@@ -27,6 +27,16 @@ export const LEVELS = [
 export const REELS_FOR_DIRECTORA = 1
 export const REELS_FOR_ESTRELLA = 4
 
+/** Paseo de la Fama: la galería de reels de las alumnas. */
+export const PASEO_NAME = 'Paseo de la Fama'
+/** Reels que puede subir cada alumna por semana. Si lo cambias, cámbialo también en Supabase (secret REELS_POR_SEMANA). */
+export const REELS_PER_WEEK = 3
+/** Tamaño y duración máximos del archivo. */
+export const REEL_MAX_MB = 300
+export const REEL_MAX_SECONDS = 180
+/** Premios que dan Meli y Clari desde Admin → Paseo de la Fama. */
+export const AWARDS = ['Reel de la semana', 'Mejor hook', 'Mejor edición', 'Mejor guion', 'Premio del público'] as const
+
 export const FAQ: { q: string; a: string }[] = [
   {
     q: '¿Qué necesito para usar el sistema?',
@@ -43,6 +53,10 @@ export const FAQ: { q: string; a: string }[] = [
   {
     q: '¿Cómo subo de nivel?',
     a: 'Terminando la instalación y publicando reels hechos con el sistema. Cada vez que publiques uno, márcalo con el botón "Publiqué un reel".',
+  },
+  {
+    q: '¿Qué es el Paseo de la Fama?',
+    a: 'La galería de reels de las alumnas. Subes tu reel (directo desde la compu o el celu), aparece con tu estrella y las demás le pueden dar estrellas. Cada semana Meli y Clari entregan premios. Cada reel que subes cuenta para tu nivel.',
   },
   {
     q: '¿Recibo un certificado?',

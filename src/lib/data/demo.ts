@@ -1,5 +1,6 @@
 // MODO DEMO: todo vive en el navegador (localStorage). Sirve para probar la plataforma sin backend.
 import type { DataApi } from './api'
+import type { PaseoReel, Reel } from '../types'
 import { expandBundles, newId } from './api'
 import { createSeed, type DemoDb } from './seed'
 import { isComplete } from '../levels'
@@ -12,7 +13,7 @@ function load(): DemoDb {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const saved = JSON.parse(raw) as DemoDb
-      return { ...saved, certificates: saved.certificates ?? [] }
+      return { ...saved, certificates: saved.certificates ?? [], paseo: saved.paseo ?? createSeed().paseo, stars: saved.stars ?? [] }
     }
   } catch {
     // sin almacenamiento: seguimos con los datos de ejemplo en memoria
@@ -97,7 +98,7 @@ export function createDemoApi(): DataApi {
       return db.reels
     },
     async addReel(url) {
-      const reel = { id: newId(), url, created_at: new Date().toISOString() }
+      const reel: Reel = { id: newId(), url, created_at: new Date().toISOString() }
       db = { ...db, reels: [...db.reels, reel] }
       save()
       return reel
@@ -134,6 +135,62 @@ export function createDemoApi(): DataApi {
       if (!c) return null
       const product = db.products.find((p) => p.id === c.product_id)
       return { full_name: c.full_name, product_title: product?.title ?? '', issued_at: c.issued_at }
+    },
+
+    async listPaseo() {
+      return [...db.paseo].sort((a, b) => b.created_at.localeCompare(a.created_at))
+    },
+    async listMyStars() {
+      return db.stars
+    },
+    async setStar(reelId, on) {
+      const had = db.stars.includes(reelId)
+      if (on === had) return
+      db = {
+        ...db,
+        stars: on ? [...db.stars, reelId] : db.stars.filter((s) => s !== reelId),
+        paseo: db.paseo.map((r) => (r.id === reelId ? { ...r, stars: Math.max(0, r.stars + (on ? 1 : -1)) } : r)),
+      }
+      save()
+    },
+    async uploadReel(file, info, onProgress) {
+      // En demo no se sube nada: se simula la barra y el reel queda en el Paseo sin video.
+      for (let i = 1; i <= 10; i++) {
+        await new Promise((r) => setTimeout(r, 120))
+        onProgress(i / 10)
+      }
+      const now = new Date().toISOString()
+      const reel: PaseoReel = {
+        id: newId(),
+        user_id: db.profile.id,
+        product_id: info.product_id,
+        video_id: `demo-${file.name}`,
+        title: info.title,
+        author_name: info.author_name,
+        handle: info.handle,
+        url: info.url,
+        thumb_url: null,
+        status: 'lista',
+        hidden: false,
+        award: null,
+        stars: 0,
+        created_at: now,
+      }
+      const own: Reel = { id: reel.id, url: info.url, created_at: now, video_id: reel.video_id, status: 'lista' }
+      db = { ...db, paseo: [reel, ...db.paseo], reels: [...db.reels, own] }
+      save()
+      return reel
+    },
+    async getReelUrl() {
+      return null
+    },
+    async deleteReel(reelId) {
+      db = { ...db, paseo: db.paseo.filter((r) => r.id !== reelId), reels: db.reels.filter((r) => r.id !== reelId) }
+      save()
+    },
+    async updateReel(reelId, changes) {
+      db = { ...db, paseo: db.paseo.map((r) => (r.id === reelId ? { ...r, ...changes } : r)) }
+      save()
     },
 
     async saveProduct(p) {

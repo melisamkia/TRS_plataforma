@@ -34,6 +34,7 @@ Otros comandos: `npm test` (pruebas), `npm run typecheck`, `npm run build`.
 | Credencial | El número de alumna. Las de preventa dicen "Fundadora" |
 | Niveles | Aprendiz → Creadora (terminó la ruta rápida de Instalación) → Directora (primer reel) → Estrella (4 reels) |
 | En cartelera | La galería de otros productos |
+| Paseo de la Fama | La galería de reels de las alumnas, con estrellas y premios |
 
 Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/config.ts`.
 
@@ -66,6 +67,17 @@ Los niveles, los reels necesarios y los textos de ayuda se cambian en `src/confi
    - `BUNNY_API_KEY`: la "API Key" de la biblioteca (pestaña API). Sirve para subir videos desde el Admin.
 4. Publicar las dos funciones (`supabase functions deploy video-token` y `supabase functions deploy video-upload`, o desde el panel: Edge Functions → Deploy a new function → Via Editor, con el mismo nombre y el código de `supabase/functions/<nombre>/index.ts`).
 5. Cargar los videos: Admin → Escenas y clases → Editar la clase → **Subir el video**. Va directo a Bunny y la clase se guarda sola con el ID. Bunny tarda unos minutos en procesarlo. También se puede subir en Bunny y pegar el "Video ID" a mano.
+
+### 2b. Paseo de la Fama (la galería de reels de las alumnas)
+
+Cada alumna de The Reel Studio sube su reel desde la plataforma (compu o celu). El archivo va **directo a Bunny**, nunca pasa por la plataforma, así que la página no se carga. En la galería solo se ven miniaturas y el video se carga cuando alguien lo abre. Las demás le dan estrellas y Meli y Clari entregan premios (Reel de la semana, Mejor hook…) desde Admin → Paseo de la Fama, donde también se puede ocultar o borrar cualquier reel. Cada reel subido cuenta para el nivel.
+
+Topes: 3 reels por semana por alumna, hasta 3 minutos y 300 MB (se cambian en `src/config.ts`; el de la semana también con el secret `REELS_POR_SEMANA`).
+
+1. En Supabase → SQL Editor: correr `supabase/migrations/20261105000000_paseo_de_la_fama.sql`.
+2. Publicar la función: `supabase functions deploy reels` (o desde el panel, con el nombre `reels` y el código de `supabase/functions/reels/index.ts`). Usa los mismos secrets de Bunny de las clases.
+3. Miniaturas (recomendado): en Bunny → la biblioteca → API, copiar el **CDN Hostname** (tipo `vz-xxxx.b-cdn.net`) y cargarlo como secret `BUNNY_CDN_HOST`. Sin esto, cada reel se ve con una tarjeta con estrella en lugar de su imagen.
+4. Opcional: en Bunny crear una colección "Paseo de la Fama" y cargar su ID como `BUNNY_REELS_COLLECTION`, para tener los reels separados de las clases.
 
 ### 3. Netlify (la página)
 
@@ -104,7 +116,7 @@ Supabase pausa los proyectos gratis después de una semana sin actividad. La acc
 
 - **Quién avisa las ventas**: elegir Stripe o Zapier/Make (ver paso 4) según cómo cobra Beacons.
 - **Links de compra** de los productos de la Cartelera: se cargan en Admin → Productos.
-- Para la versión 2: muro de reels de la comunidad, racha de semanas publicando y resumen mensual.
+- Para la versión 2: racha de semanas publicando y resumen mensual.
 
 ## Carpetas
 
@@ -116,7 +128,7 @@ src/lib/data/            conexión con Supabase y modo demo
 src/pages/               pantallas de alumna
 src/pages/admin/         panel de admin
 supabase/migrations/     tablas y permisos (cada alumna ve solo lo que compró)
-supabase/functions/      video-token (link firmado de Bunny), video-upload (subir videos desde el Admin) y compra (accesos automáticos)
+supabase/functions/      video-token (link firmado de Bunny), video-upload (subir videos desde el Admin), reels (Paseo de la Fama) y compra (accesos automáticos)
 ```
 
 Si cambiás `curso-trs.ts` o `seed.ts`, regenerá el SQL con `npm run seed:sql`. Para pasar el curso a un proyecto que ya tiene datos, se corre `supabase/curso-trs.sql` (reemplaza las escenas de The Reel Studio y borra el progreso de esas clases).

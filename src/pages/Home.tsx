@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Credential, Poster, Ticket, formatDate, pad2 } from '../components/bits'
-import { TELEGRAM_URL } from '../config'
+import { REELS_PER_WEEK, TELEGRAM_URL } from '../config'
+import { StarPlaque } from './Paseo'
 import { isSatisfied, levelName, summarize } from '../lib/levels'
 import { useStore } from '../lib/store'
 
 export function Home() {
-  const { profile, owned, catalog, entitlements, productContent, completed, level, updates } = useStore()
+  const { profile, owned, catalog, entitlements, productContent, completed, level, updates, paseoProduct, reels } = useStore()
   const firstName = (profile?.full_name || '').split(' ')[0]
 
   // Credencial: la del primer producto con juego (The Reel Studio)
@@ -108,6 +109,30 @@ export function Home() {
           )}
         </div>
       </section>
+
+      {paseoProduct && (
+        <section className="section" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <Link to="/paseo" className="paseo-teaser">
+              <div>
+                <span className="eyebrow">Nuevo · La galería de las alumnas</span>
+                <h2>
+                  Paseo de la <b>Fama</b>
+                </h2>
+                <p>
+                  Sube tu reel, recibe estrellas de tus compañeras y compite por los premios del set. Cada reel suma a tu nivel
+                  {reels.length > 0 ? ` (llevas ${reels.length})` : ''}.
+                </p>
+                <span className="btn lime">★ Subir mi reel</span>
+                <small>Hasta {REELS_PER_WEEK} por semana · lo ven solo las alumnas</small>
+              </div>
+              <div className="teaser-stars" aria-hidden="true">
+                <StarPlaque name={firstName || 'Tú'} />
+              </div>
+            </Link>
+          </div>
+        </section>
+      )}
 
       {updates.length > 0 && (
         <>

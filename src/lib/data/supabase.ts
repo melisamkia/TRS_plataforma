@@ -4,12 +4,52 @@ import { Upload } from 'tus-js-client'
 import type { DataApi } from './api'
 import { expandBundles } from './api'
 import { SESSION_HOURS } from '../../config'
-import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Entitlement, Lesson, Module, PaseoReel, Product, Profile, Purchase, Reel, Update } from '../types'
 
 function check<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message)
   return res.data as T
 }
+
+interface BunnyUpload {
+  video_id: string
+  library_id: string
+  expires: number
+  signature: string
+}
+
+/** Sube el archivo directo a Bunny Stream (TUS, se retoma solo si se corta). */
+function tusToBunny(file: File, title: string, t: BunnyUpload, onProgress: (fraction: number) => void): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const up = new Upload(file, {
+      endpoint: 'https://video.bunnycdn.com/tusupload',
+      retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
+      chunkSize: 50 * 1024 * 1024,
+      headers: {
+        AuthorizationSignature: t.signature,
+        AuthorizationExpire: String(t.expires),
+        VideoId: t.video_id,
+        LibraryId: t.library_id,
+      },
+      metadata: { filetype: file.type, title },
+      onProgress: (sent, total) => onProgress(total ? sent / total : 0),
+      onError: (e) => reject(new Error(`Se cortó la subida: ${e.message}`)),
+      onSuccess: () => resolve(),
+    })
+    up.start()
+  })
+}
+
+/** El mensaje de error que devolvió la función (o uno genérico). */
+async function functionError(error: unknown, fallback: string): Promise<string> {
+  try {
+    return ((await (error as { context?: Response }).context?.json()) as { error?: string })?.error ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+const PASEO_COLS = 'id,user_id,product_id,video_id,title,author_name,handle,url,thumb_url,status,hidden,award,stars,created_at'
 
 export function createSupabaseApi(url: string, anonKey: string): DataApi {
   const sb: SupabaseClient = createClient(url, anonKey)
@@ -93,7 +133,10 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       }
     },
     async listReels() {
-      return check(await sb.from('reels').select('id,url,created_at').order('created_at')) as Reel[]
+      // Solo los míos (el Paseo deja ver los de las demás) y sin los que quedaron a medio subir.
+      const uid = await userId()
+      const rows = check(await sb.from('reels').select('id,url,created_at,video_id,status').eq('user_id', uid).order('created_at')) as Reel[]
+      return rows.filter((r) => r.status !== 'subiendo')
     },
     async addReel(url) {
       const uid = await userId()
@@ -123,6 +166,51 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
       return ((data as CertificateCheck[] | null) ?? [])[0] ?? null
     },
 
+    async listPaseo() {
+      return check(
+        await sb.from('reels').select(PASEO_COLS).not('video_id', 'is', null).eq('status', 'lista').order('created_at', { ascending: false }).limit(500),
+      ) as PaseoReel[]
+    },
+    async listMyStars() {
+      const rows = check(await sb.from('reel_stars').select('reel_id')) as { reel_id: string }[]
+      return rows.map((r) => r.reel_id)
+    },
+    async setStar(reelId, on) {
+      const uid = await userId()
+      if (on) {
+        const { error } = await sb.from('reel_stars').insert({ reel_id: reelId, user_id: uid })
+        if (error && error.code !== '23505') throw new Error('No pudimos guardar tu estrella.')
+      } else {
+        check(await sb.from('reel_stars').delete().eq('reel_id', reelId).eq('user_id', uid))
+      }
+    },
+    async uploadReel(file, info, onProgress) {
+      const { data, error } = await sb.functions.invoke('reels', { body: { action: 'create', ...info } })
+      if (error) throw new Error(await functionError(error, 'No pudimos preparar la subida.'))
+      const { reel, upload } = data as { reel: PaseoReel; upload: BunnyUpload }
+      try {
+        await tusToBunny(file, info.title || info.author_name, upload, onProgress)
+        check(await sb.rpc('reel_ready', { rid: reel.id }))
+      } catch (e) {
+        // Que no quede un reel a medio subir ocupando lugar.
+        await sb.functions.invoke('reels', { body: { action: 'delete', reel_id: reel.id } }).catch(() => undefined)
+        throw e
+      }
+      return { ...reel, status: 'lista' }
+    },
+    async getReelUrl(reelId) {
+      const { data, error } = await sb.functions.invoke('reels', { body: { action: 'play', reel_id: reelId } })
+      if (error) throw new Error(await functionError(error, 'No pudimos cargar el reel.'))
+      return (data as { url?: string })?.url ?? null
+    },
+    async deleteReel(reelId) {
+      const { error } = await sb.functions.invoke('reels', { body: { action: 'delete', reel_id: reelId } })
+      if (error) throw new Error(await functionError(error, 'No pudimos borrar el reel.'))
+    },
+    async updateReel(reelId, changes) {
+      check(await sb.from('reels').update(changes).eq('id', reelId))
+    },
+
     async saveProduct(p) {
       return check(await sb.from('products').upsert(p).select('*').single()) as Product
     },
@@ -137,34 +225,9 @@ export function createSupabaseApi(url: string, anonKey: string): DataApi {
     },
     async uploadVideo(file, title, onProgress) {
       const { data, error } = await sb.functions.invoke('video-upload', { body: { title } })
-      if (error) {
-        let msg = 'No pudimos preparar la subida.'
-        try {
-          msg = ((await (error as { context?: Response }).context?.json()) as { error?: string })?.error ?? msg
-        } catch {
-          // sin detalle
-        }
-        throw new Error(msg)
-      }
-      const t = data as { video_id: string; library_id: string; expires: number; signature: string }
-      await new Promise<void>((resolve, reject) => {
-        const up = new Upload(file, {
-          endpoint: 'https://video.bunnycdn.com/tusupload',
-          retryDelays: [0, 3000, 5000, 10000, 20000, 60000],
-          chunkSize: 50 * 1024 * 1024,
-          headers: {
-            AuthorizationSignature: t.signature,
-            AuthorizationExpire: String(t.expires),
-            VideoId: t.video_id,
-            LibraryId: t.library_id,
-          },
-          metadata: { filetype: file.type, title },
-          onProgress: (sent, total) => onProgress(total ? sent / total : 0),
-          onError: (e) => reject(new Error(`Se cortó la subida: ${e.message}`)),
-          onSuccess: () => resolve(),
-        })
-        up.start()
-      })
+      if (error) throw new Error(await functionError(error, 'No pudimos preparar la subida.'))
+      const t = data as BunnyUpload
+      await tusToBunny(file, title, t, onProgress)
       return t.video_id
     },
     async saveLesson(l) {

@@ -1,4 +1,4 @@
-import type { Certificate, CertificateCheck, Content, Entitlement, Lesson, Module, Product, Profile, Purchase, Reel, Update } from '../types'
+import type { Certificate, CertificateCheck, Content, Entitlement, Lesson, Module, NewPaseoReel, PaseoReel, Product, Profile, Purchase, Reel, Update } from '../types'
 
 /** Todo lo que la app necesita del backend. Hay dos versiones: demo (navegador) y Supabase. */
 export interface DataApi {
@@ -29,6 +29,21 @@ export interface DataApi {
   issueCertificate(productId: string, fullName: string): Promise<Certificate>
   /** Verificación pública: no hace falta sesión. */
   verifyCertificate(code: string): Promise<CertificateCheck | null>
+
+  // Paseo de la Fama
+  /** Reels del Paseo, del más nuevo al más viejo. Admin ve también los ocultos. */
+  listPaseo(): Promise<PaseoReel[]>
+  /** IDs de los reels a los que les di estrella. */
+  listMyStars(): Promise<string[]>
+  setStar(reelId: string, on: boolean): Promise<void>
+  /** Sube el video directo a Bunny y lo deja en el Paseo. onProgress va de 0 a 1. */
+  uploadReel(file: File, info: NewPaseoReel, onProgress: (fraction: number) => void): Promise<PaseoReel>
+  /** Link firmado del reproductor. null si no hay video (demo). */
+  getReelUrl(reelId: string): Promise<string | null>
+  /** Borra el reel del Paseo y de Bunny (la dueña o admin). */
+  deleteReel(reelId: string): Promise<void>
+  /** Admin: ocultar o dar un premio. */
+  updateReel(reelId: string, changes: { hidden?: boolean; award?: string | null }): Promise<void>
 
   // Admin
   saveProduct(p: Product): Promise<Product>

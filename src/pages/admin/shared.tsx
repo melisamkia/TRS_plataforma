@@ -12,7 +12,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="wrap">
           <span className="eyebrow">Solo para Meli y Clari</span>
           <h1 style={{ marginTop: 10 }}>Admin</h1>
-          <p className="lead">Carga productos, escenas, clases, novedades y da acceso a las alumnas. Lo que guardas acá se ve al instante en la plataforma.</p>
+          <p className="lead">Carga productos, escenas, clases, novedades, da acceso a las alumnas y entrega los premios del Paseo. Lo que guardas acá se ve al instante en la plataforma.</p>
           {api.mode === 'demo' && (
             <div style={{ marginTop: 18 }}>
               <button
@@ -42,6 +42,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <NavLink to="/admin/contenido">Escenas y clases</NavLink>
             <NavLink to="/admin/novedades">Novedades</NavLink>
             <NavLink to="/admin/alumnas">Alumnas y accesos</NavLink>
+            <NavLink to="/admin/paseo">Paseo de la Fama</NavLink>
           </nav>
           {children}
         </div>

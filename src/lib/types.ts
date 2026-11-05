@@ -76,10 +76,45 @@ export interface Entitlement {
   created_at: string
 }
 
+/** Un reel de la alumna. Los que tienen video están en el Paseo de la Fama. */
 export interface Reel {
   id: string
   url: string | null
   created_at: string
+  /** Solo los reels del Paseo tienen estos datos. */
+  video_id?: string | null
+  status?: 'subiendo' | 'lista'
+}
+
+/** Reel del Paseo de la Fama, como lo ven todas. */
+export interface PaseoReel {
+  id: string
+  user_id: string
+  product_id: string
+  video_id: string
+  title: string
+  /** Nombre que va en la estrella. */
+  author_name: string
+  /** Usuario de Instagram, sin @. */
+  handle: string
+  /** Link al reel publicado (opcional). */
+  url: string | null
+  /** Miniatura de Bunny. Vacía = se muestra una tarjeta con la estrella. */
+  thumb_url: string | null
+  status: 'subiendo' | 'lista'
+  hidden: boolean
+  /** Premio que dieron Meli y Clari. */
+  award: string | null
+  stars: number
+  created_at: string
+}
+
+export interface NewPaseoReel {
+  product_id: string
+  title: string
+  author_name: string
+  handle: string
+  url: string | null
 }
 
 export interface Update {

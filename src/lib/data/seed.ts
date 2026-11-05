@@ -1,5 +1,5 @@
 // Contenido de ejemplo para el MODO DEMO. Se reemplaza desde el panel de admin.
-import type { Certificate, Entitlement, Lesson, Module, Product, Profile, Reel, Update } from '../types'
+import type { Certificate, Entitlement, Lesson, Module, PaseoReel, Product, Profile, Reel, Update } from '../types'
 import { CURSO_TRS, type EscenaSeed } from './curso-trs'
 
 export interface DemoDb {
@@ -12,6 +12,9 @@ export interface DemoDb {
   reels: Reel[]
   updates: Update[]
   certificates: Certificate[]
+  /** Paseo de la Fama (solo demo: en Supabase vive en la tabla reels). */
+  paseo: PaseoReel[]
+  stars: string[]
 }
 
 const TRS_CHECKOUT = 'https://shop.beacons.ai/ohmybots/e8e58546-ec74-4e85-95da-e2dfb81d5bd2'
@@ -212,6 +215,36 @@ function buildContent(productId: string, prefix: string, seed: EscenaSeed[]) {
   return { modules, lessons }
 }
 
+/** Reels de ejemplo de otras alumnas, para ver cómo queda el Paseo. */
+function demoPaseo(): PaseoReel[] {
+  const base = Date.parse('2026-11-04T18:00:00Z')
+  const items: [string, string, string, number, string | null][] = [
+    ['Sofi Ramírez', 'sofi.crea', 'Mi rutina de mañana en 30 segundos', 14, 'Reel de la semana'],
+    ['Caro Méndez', 'caromendez.ok', 'Antes y después de mi cocina', 9, null],
+    ['Vale Torres', 'valetorres.studio', 'Tres errores al grabar con el celular', 21, 'Mejor hook'],
+    ['Lu Fernández', '', 'Cómo armé mi primer reel con el sistema', 6, null],
+    ['Agus Pereyra', 'agus.pereyra', 'Un día en mi taller de cerámica', 11, 'Mejor edición'],
+    ['Mica Sosa', 'mica.sosa.fit', 'Rutina de 5 minutos para la espalda', 4, null],
+    ['Juli Ortiz', 'juli.ortiz', 'Lo que nadie te cuenta de emprender', 8, null],
+  ]
+  return items.map(([author_name, handle, title, stars, award], i) => ({
+    id: `pz-${i + 1}`,
+    user_id: `demo-alumna-${i + 1}`,
+    product_id: 'p-trs',
+    video_id: `demo-${i + 1}`,
+    title,
+    author_name,
+    handle,
+    url: null,
+    thumb_url: null,
+    status: 'lista',
+    hidden: false,
+    award,
+    stars,
+    created_at: new Date(base - i * 9 * 60 * 60 * 1000).toISOString(),
+  }))
+}
+
 export function createSeed(): DemoDb {
   const trs = buildContent('p-trs', 'trs', CURSO_TRS)
   const br = buildContent('p-brolls', 'br', brollModules)
@@ -227,6 +260,8 @@ export function createSeed(): DemoDb {
     progress: ['trs-m1-l1', 'trs-m1-l2', 'trs-m1-l3', 'trs-m2-l1'],
     reels: [],
     certificates: [],
+    paseo: demoPaseo(),
+    stars: [],
     updates: [
       {
         id: 'u1',

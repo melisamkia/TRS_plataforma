@@ -7,7 +7,7 @@ import { useNewVersion } from '../lib/useNewVersion'
 import { Clapper } from './bits'
 
 export function Layout() {
-  const { profile, signOut, toast, celebration, closeCelebration } = useStore()
+  const { profile, signOut, toast, celebration, closeCelebration, paseoProduct } = useStore()
   const [open, setOpen] = useState(false)
   const loc = useLocation()
   const close = () => setOpen(false)
@@ -27,6 +27,11 @@ export function Layout() {
             <NavLink to="/" end onClick={close}>
               Inicio
             </NavLink>
+            {paseoProduct && (
+              <NavLink to="/paseo" onClick={close}>
+                ★ Paseo de la Fama
+              </NavLink>
+            )}
             <NavLink to="/novedades" onClick={close}>
               Novedades
             </NavLink>

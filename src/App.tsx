@@ -4,6 +4,7 @@ import { Layout } from './components/Layout'
 import { StoreProvider, useStore } from './lib/store'
 import { AdminContent } from './pages/admin/AdminContent'
 import { AdminMembers } from './pages/admin/AdminMembers'
+import { AdminPaseo } from './pages/admin/AdminPaseo'
 import { AdminProducts } from './pages/admin/AdminProducts'
 import { AdminUpdates } from './pages/admin/AdminUpdates'
 import { Certificate, VerifyCertificate } from './pages/Certificate'
@@ -12,6 +13,7 @@ import { Home } from './pages/Home'
 import { Lesson } from './pages/Lesson'
 import { Login } from './pages/Login'
 import { NotFound } from './pages/NotFound'
+import { Paseo } from './pages/Paseo'
 import { Product } from './pages/Product'
 import { Updates } from './pages/Updates'
 
@@ -72,12 +74,14 @@ function MemberRoutes() {
         <Route path="p/:slug" element={<Product />} />
         <Route path="clase/:id" element={<Lesson />} />
         <Route path="certificado/:slug" element={<Certificate />} />
+        <Route path="paseo" element={<Paseo />} />
         <Route path="novedades" element={<Updates />} />
         <Route path="ayuda" element={<Help />} />
         <Route path="admin" element={<AdminOnly><AdminProducts /></AdminOnly>} />
         <Route path="admin/contenido" element={<AdminOnly><AdminContent /></AdminOnly>} />
         <Route path="admin/novedades" element={<AdminOnly><AdminUpdates /></AdminOnly>} />
         <Route path="admin/alumnas" element={<AdminOnly><AdminMembers /></AdminOnly>} />
+        <Route path="admin/paseo" element={<AdminOnly><AdminPaseo /></AdminOnly>} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
